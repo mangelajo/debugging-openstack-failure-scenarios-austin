@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Title</title>
+    <title>OpenStack Upgrades</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <link rel="stylesheet" href="slides.css"></link>
   </head>
@@ -27,14 +27,25 @@ Three upgrade scenarios:
 
 ---
  
-## Scenario 1: Everything, all at once
+## Scenario 1: Everything at once
 
 - Simple because there's no orchestration involved
 - Good for development or POC environments
 - Not so good for real deployments because of extended downtime
 
 ---
- 
+
+## Scenario 1: Everything at once
+
+- Generally looks like:
+
+        openstack-service stop
+        yum upgrade
+        upgrade-all-the-databases
+        openstack-service start
+
+---
+
 ## Scenario 2: Everything, one at a time
 
 - Instead of one major service interruption...
@@ -42,33 +53,53 @@ Three upgrade scenarios:
 - Schedule Nova upgrade separately from other services
 
 ---
+
+## Scenario 2: Everything, one at a time
+
+- Generally looks like:
+
+      openstack-service stop keystone
+      yum upgrade *keystone*
+      keystone-manage db_sync
+      openstack-service start keystone
+
+---
+
+## Scenario 2: Everything, one at a time
+
+- This is a great way to spot package dependency problems.
+
+---
  
-## Scenario 3: Parallel Nova environment (1)
+## Scenario 3: Parallel Nova
 
 - Like scenario 2, except for Nova
 - Deploy Havana Nova environment on new hardware
-- Share glance, cinder, keystone, neutron with
-  Grizzly Nova environment
+- Maximizes availability of compute service
 - Requires additional hardware
 
 ---
  
-## Scenario 3: Parallel Nova environment (2)
+## Scenario 3: Parallel Nova
 
 - Migrate workloads through attrition, or
 - Migrate workloads via snapshot-delete-boot
+- Havana Nova can see snapshots created in Grizzly Nova
+  (sharing Glance, Cinder, Neutron, Swift, etc)
 
 ---
  
-## Scenario 3: Parallel Nova environment (3)
+## Scenario 3: Parallel Nova
 
 - New Nova environment is set up in Keystone as a new region.
+  - New endpoint for compute
+  - New endpoint for volume
 - CLI tools are happy (with --os-region-name or `OS_REGION_NAME`)
 - Horizon not so much
 
 ---
  
-## Scenario 3: Parallel Nova environment (4)
+## Scenario 3: Parallel Nova
 
 Migrating an instance looks like:
 
@@ -83,23 +114,30 @@ Migrating an instance looks like:
 
 ---
  
-## Scenario 3: Parallel Nova environment (5)
+## Scenario 3: Parallel Nova
 
 - Reinstall Grizzly compute nodes as Havana compute nodes
   after all workloads are gone
 
+Not tested:
+
+- Volume service
+- Nova networking
+
 ---
  
-## Upgrading Quantum to Neutron (1)
+## Upgrading Quantum to Neutron
 
-- What were they thinking?
+- **What were they thinking?**
 - Configuration files have all changed location
 - Python modules have all changed names
 - Configuration files *include* names of Python modules
 
 ---
  
-## Upgrading Quantum to Neutron (2)
+## Upgrading Quantum to Neutron
+
+Neutron code doesn't know anything about old config files. So:
 
 ![Upgrading quantum][upgrade-quantum]
 
@@ -107,9 +145,9 @@ Migrating an instance looks like:
 
 ---
  
-## Upgrading Quantum to Neutron (3)
+## Upgrading Quantum to Neutron
 
-- What were they thinking?
+- **What were they thinking?**
 - Quantum database has no versioning information 
   until you explicitly put it there
 - So nothing as simple as `neutron-manage db sync`.
@@ -117,7 +155,30 @@ Migrating an instance looks like:
 
 ---
  
-## Upgrading Quantum to Neutron (4)
+## Upgrading Quantum to Neutron
+
+Checking database version:
+
+    neutron-db-manage --config-file /etc/neutron/neutron.conf \
+      --config-file /etc/neutron/plugin.ini current
+
+Setting database version:
+
+    neutron-db-manage --config-file /etc/neutron/neutron.conf \
+      --config-file /etc/neutron/plugin.ini stamp grizzly
+
+---
+
+## Upgrading Quantum to Neutron
+
+Upgrading database:
+
+    neutron-db-manage --config-file /etc/neutron/neutron.conf \
+      --config-file /etc/neutron/plugin.ini upgrade head
+
+---
+
+## Upgrading Quantum to Neutron
 
 - New `openstack-neutron` packages take much of the pain away
 - Quantum client seems happy talking to Neutron server
@@ -129,6 +190,15 @@ Migrating an instance looks like:
 - `local_settings` substantially different between Grizzly and Havana
   packages
 - Requires manual inspection
+
+---
+
+## Documentation
+
+Extended documentation available [here][].
+
+[here]: http://shell.bos.redhat.com/~lkellogg/rhos-upgrade-docs/
+
 
     </textarea>
     <script src="remark-0.5.9.min.js" type="text/javascript">

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Title</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" href="slides.css"></link>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle, inverse
+
+# OpenStack Upgrades
+
+---
+ 
+## Overview
+
+Three upgrade scenarios:
+
+1. Upgrade everything at once
+
+2. Upgrade one service at a time
+
+3. Upgrade one service at time with a parallel Havana Nova
+   environment.
+
+---
+ 
+## Scenario 1: Everything, all at once
+
+- Simple because there's no orchestration involved
+- Good for development or POC environments
+- Not so good for real deployments because of extended downtime
+
+---
+ 
+## Scenario 2: Everything, one at a time
+
+- Instead of one major service interruption...
+- ...lots of smaller ones.  Yay!
+- Schedule Nova upgrade separately from other services
+
+---
+ 
+## Scenario 3: Parallel Nova environment (1)
+
+- Like scenario 2, except for Nova
+- Deploy Havana Nova environment on new hardware
+- Share glance, cinder, keystone, neutron with
+  Grizzly Nova environment
+- Requires additional hardware
+
+---
+ 
+## Scenario 3: Parallel Nova environment (2)
+
+- Migrate workloads through attrition, or
+- Migrate workloads via snapshot-delete-boot
+
+---
+ 
+## Scenario 3: Parallel Nova environment (3)
+
+- New Nova environment is set up in Keystone as a new region.
+- CLI tools are happy (with --os-region-name or `OS_REGION_NAME`)
+- Horizon not so much
+
+---
+ 
+## Scenario 3: Parallel Nova environment (4)
+
+Migrating an instance looks like:
+
+    nova --os-region-name oldregion \
+      image-create <instance> <instance>_migrate
+    nova --os-region-name oldregion \
+      delete <instance>
+    nova --os-region-name newregion \
+      boot --image <instance>_migrate ... <instance>
+    nova --os-region-name newregion \
+      add-floating-ip <instance> <ipaddr>
+
+---
+ 
+## Scenario 3: Parallel Nova environment (5)
+
+- Reinstall Grizzly compute nodes as Havana compute nodes
+  after all workloads are gone
+
+---
+ 
+## Upgrading Quantum to Neutron (1)
+
+- What were they thinking?
+- Configuration files have all changed location
+- Python modules have all changed names
+- Configuration files *include* names of Python modules
+
+---
+ 
+## Upgrading Quantum to Neutron (2)
+
+![Upgrading quantum][upgrade-quantum]
+
+[upgrade-quantum]: upgrade-quantum.svg
+
+---
+ 
+## Upgrading Quantum to Neutron (3)
+
+- What were they thinking?
+- Quantum database has no versioning information 
+  until you explicitly put it there
+- So nothing as simple as `neutron-manage db sync`.
+- Starting Neutron before database upgrade can break database
+
+---
+ 
+## Upgrading Quantum to Neutron (4)
+
+- New `openstack-neutron` packages take much of the pain away
+- Quantum client seems happy talking to Neutron server
+
+---
+ 
+## Upgrading Horizon
+
+- `local_settings` substantially different between Grizzly and Havana
+  packages
+- Requires manual inspection
+
+    </textarea>
+    <script src="remark.js" type="text/javascript">
+    </script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
+

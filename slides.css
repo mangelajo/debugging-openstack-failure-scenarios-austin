@@ -5,7 +5,6 @@
 body {
 	font-family: 'Droid Sans';
 	font-size: 30px;
-	color: #fcfcfc
 }
 h1, h2, h3 {
 	font-family: 'Yanone Kaffeesatz';
@@ -115,5 +114,6 @@ code {
 
 .remark-slide-content {
 	background-image: url("background.png");
+	color: #fcfcfc;
 }
 

@@ -43,7 +43,14 @@ Three upgrade scenarios:
 
 - Simple because there's no orchestration involved
 - Good for development or POC environments
-- Not so good for real deployments because of extended downtime
+- Not so good for production deployments because of extended downtime
+
+???
+
+Nova upgrades are O(number of instances), and Dan tells me that e.g.
+at Rackspace, a single database migration step can take 10-15 hours,
+and there are several steps involved in getting from Grizzly to
+Havana.
 
 ---
 
@@ -58,6 +65,10 @@ Three upgrade scenarios:
 
 <img src="all-the-things.png" width="200" />
 
+???
+
+This has to happen on all nodes in your OpenStack environment.
+
 ---
 
 ## Scenario 2: Everything, one at a time
@@ -65,6 +76,12 @@ Three upgrade scenarios:
 - Instead of one major service interruption...
 - ...lots of smaller ones.  Yay!
 - Schedule Nova upgrade separately from other services
+
+???
+
+This may be a better choice for some organizations because it allows
+them to decouple the upgrade of Nova from the upgrade of simple
+services such as Keystone, Cinder, or Glance.
 
 ---
 
@@ -82,6 +99,13 @@ Three upgrade scenarios:
 ## Scenario 2: Everything, one at a time
 
 - This is a great way to spot package dependency problems.
+
+???
+
+It turns out that upgrading one component at a time is a great way to
+flush out rpm dependency problems.  In many cases runtime requirements
+were getting resolved by chance because another installed packages was
+pulling in the requisite dependencies.
 
 ---
  

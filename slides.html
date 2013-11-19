@@ -14,15 +14,14 @@ class: center, middle
 
 ---
 
+class: center
+
 ## Who is this Lars guy anyway?
 
-- Hi there.  I'm new here.
-- Started in September 2013.
-- Somebody gave me this hat.
+<img src="lars.jpg" width="200"/>
 
-<img src="lars.jpg" width="100"/>
-
-- lars@redhat.com
+lars@redhat.com  
+larsks @ irc
 
 ---
  
@@ -120,20 +119,20 @@ pulling in the requisite dependencies.
  
 ## Scenario 3: Parallel Nova
 
-- Migrate workloads through attrition, or
-- Migrate workloads via snapshot-delete-boot
-- Havana Nova can see snapshots created in Grizzly Nova
-  (sharing Glance, Cinder, Neutron, Swift, etc)
-
----
- 
-## Scenario 3: Parallel Nova
-
 - New Nova environment is set up in Keystone as a new region.
   - New endpoint for compute
   - New endpoint for volume
 - CLI tools are happy (with --os-region-name or `OS_REGION_NAME`)
 - Horizon not so much
+
+---
+ 
+## Scenario 3: Parallel Nova
+
+- Migrate workloads through attrition, or
+- Migrate workloads via snapshot-delete-boot
+- Havana Nova can see snapshots created in Grizzly Nova
+  (sharing Glance, Cinder, Neutron, Swift, etc)
 
 ---
  
@@ -256,6 +255,12 @@ Extended documentation available [here][].
 
 ---
 
+class: center, middle
+
+# THE END
+
+---
+
 ## PS
 
 If you like [Markdown][], view the source of these slides, which were
@@ -263,6 +268,18 @@ created using [remark][].
 
 [markdown]: http://en.wikipedia.org/wiki/Markdown
 [remark]: https://github.com/gnab/remark
+
+---
+
+## PPS
+
+When you run Nova (NO!), Nova Havana  
+Neutron will drive you bananas  
+When you run Nova (NO!), Nova Havana  
+Your OVS switches will have you in stitches  
+When you run Nova...
+
+
 
     </textarea>
     <script src="remark.js" type="text/javascript"></script>

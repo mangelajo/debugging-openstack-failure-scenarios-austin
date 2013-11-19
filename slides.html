@@ -193,6 +193,24 @@ Upgrading database:
 
 ---
 
+## CI Testing
+
+- We have introduced one [Jenkins job][jenkins] running Dan's
+  [test_rdo_upgrade][] script that validates all-in-one upgrades.
+
+[test_rdo_upgrade]: https://github.com/kk7ds/test_rdo_upgrade
+[jenkins]: http://jenkins.rhev.lab.eng.brq.redhat.com:8080/job/packstack-rdo-grizzly-havana-upgrade/
+
+---
+
+## CI Testing: Complications
+
+- Neutron has poor coverage in existing automated test tools (e.g.,
+  Tempest).
+- No gating tests in upstream CI.
+
+---
+
 ## Documentation
 
 Extended documentation available [here][].

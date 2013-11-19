@@ -32,6 +32,7 @@ code {
 	background: #c7c8c2;
 	border-radius: 5px;
 	font-size: 16px;
+	padding: 2px;
 }
 .pull-left {
 	float: left;
@@ -115,3 +116,4 @@ code {
 .remark-slide-content {
 	background-image: url("background.png");
 }
+

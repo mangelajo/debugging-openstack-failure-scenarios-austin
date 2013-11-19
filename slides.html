@@ -8,9 +8,21 @@
   <body>
     <textarea id="source">
 
-class: center, middle, inverse
+class: center, middle
 
 # OpenStack Upgrades
+
+---
+
+## Who is this Lars guy anyway?
+
+- Hi there.  I'm new here.
+- Started in September 2013.
+- Somebody gave me this hat.
+
+<img src="lars.jpg" width="100"/>
+
+- lars@redhat.com
 
 ---
  
@@ -43,6 +55,8 @@ Three upgrade scenarios:
         yum upgrade
         upgrade-all-the-databases
         openstack-service start
+
+<img src="all-the-things.png" width="200" />
 
 ---
 
@@ -194,15 +208,15 @@ Upgrading database:
 ## CI Testing
 
 - We have introduced one [Jenkins job][jenkins] running Dan's
-  [test_rdo_upgrade][] script that validates all-in-one upgrades.
-- 
+  [test_rdo_upgrade][] script that validates all-in-one upgrades
+- We want to get some piecewise upgrade testing in place
 
 [test_rdo_upgrade]: https://github.com/kk7ds/test_rdo_upgrade
 [jenkins]: http://jenkins.rhev.lab.eng.brq.redhat.com:8080/job/packstack-rdo-grizzly-havana-upgrade/
 
 ---
 
-## CI Testing: Complications
+## CI Testing
 
 - Neutron has poor coverage in existing automated test tools (e.g.,
   Tempest).
@@ -216,10 +230,18 @@ Extended documentation available [here][].
 
 [here]: http://shell.bos.redhat.com/~lkellogg/rhos-upgrade-docs/
 
+---
+
+## PS
+
+If you like [Markdown][], view the source of these slides, which were
+created using [remark][].
+
+[markdown]: http://en.wikipedia.org/wiki/Markdown
+[remark]: https://github.com/gnab/remark
 
     </textarea>
-    <script src="remark-0.5.9.min.js" type="text/javascript">
-    </script>
+    <script src="remark.js" type="text/javascript"></script>
     <script type="text/javascript">
       var slideshow = remark.create();
     </script>

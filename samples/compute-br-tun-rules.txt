@@ -1,0 +1,14 @@
+NXST_FLOW reply (xid=0x4):
+ cookie=0x0, duration=45555.985s, table=0, n_packets=1469, n_bytes=165678, idle_age=28, priority=1,in_port=1 actions=resubmit(,1)
+ cookie=0x0, duration=45554.429s, table=0, n_packets=956, n_bytes=165853, idle_age=28, priority=1,in_port=2 actions=resubmit(,2)
+ cookie=0x0, duration=45555.915s, table=0, n_packets=6, n_bytes=480, idle_age=45547, priority=0 actions=drop
+ cookie=0x0, duration=45555.842s, table=1, n_packets=954, n_bytes=135144, idle_age=28, priority=0,dl_dst=00:00:00:00:00:00/01:00:00:00:00:00 actions=resubmit(,20)
+ cookie=0x0, duration=45555.764s, table=1, n_packets=515, n_bytes=30534, idle_age=30, priority=0,dl_dst=01:00:00:00:00:00/01:00:00:00:00:00 actions=resubmit(,21)
+ cookie=0x0, duration=6660.654s, table=2, n_packets=412, n_bytes=72970, idle_age=28, priority=1,tun_id=0x1 actions=mod_vlan_vid:2,resubmit(,10)
+ cookie=0x0, duration=45555.689s, table=2, n_packets=0, n_bytes=0, idle_age=45555, priority=0 actions=drop
+ cookie=0x0, duration=45555.597s, table=3, n_packets=0, n_bytes=0, idle_age=45555, priority=0 actions=drop
+ cookie=0x0, duration=45555.515s, table=10, n_packets=956, n_bytes=165853, idle_age=28, priority=1 actions=learn(table=20,hard_timeout=300,priority=1,NXM_OF_VLAN_TCI[0..11],NXM_OF_ETH_DST[]=NXM_OF_ETH_SRC[],load:0->NXM_OF_VLAN_TCI[],load:NXM_NX_TUN_ID[]->NXM_NX_TUN_ID[],output:NXM_OF_IN_PORT[]),output:1
+ cookie=0x0, duration=6070.203s, table=20, n_packets=255, n_bytes=47010, hard_timeout=300, idle_age=28, hard_age=28, priority=1,vlan_tci=0x0002/0x0fff,dl_dst=fa:16:3e:1a:d9:bc actions=load:0->NXM_OF_VLAN_TCI[],load:0x1->NXM_NX_TUN_ID[],output:2
+ cookie=0x0, duration=45555.435s, table=20, n_packets=0, n_bytes=0, idle_age=45555, priority=0 actions=resubmit(,21)
+ cookie=0x0, duration=6660.792s, table=21, n_packets=290, n_bytes=18728, idle_age=30, priority=1,dl_vlan=2 actions=strip_vlan,set_tunnel:0x1,output:2
+ cookie=0x0, duration=45555.353s, table=21, n_packets=13, n_bytes=1062, idle_age=6661, priority=0 actions=drop

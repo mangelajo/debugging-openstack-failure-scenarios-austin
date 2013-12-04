@@ -1,0 +1,78 @@
+heat_template_version: 2013-05-23
+
+description: >
+  A simple HOT template for demonstrating Heat.
+
+parameters:
+  key_name:
+    type: string
+    default: lars
+    description: Name of an existing key pair to use for the instance
+  flavor:
+    type: string
+    description: Instance type for the instance to be created
+    default: m1.nano
+    constraints:
+      - allowed_values: [m1.nano, m1.tiny, m1.small, m1.large]
+        description: Value must be one of 'm1.tiny', 'm1.small' or 'm1.large'
+  image:
+    type: string
+    default: cirros
+    description: ID of the image to use for the instance
+  private_net_id:
+    type: string
+    description: Private network id
+  private_subnet_id:
+    type: string
+    description: Private subnet id
+  public_net_id:
+    type: string
+    description: Public network id
+
+resources:
+  instance0:
+    type: OS::Nova::Server
+    properties:
+      name: instance0
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - port: { get_resource: instance0_port0 }
+  instance0_port0:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net_id }
+      fixed_ips:
+        - subnet_id: { get_param: private_subnet_id }
+  instance0_public:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: instance0_port0 }
+
+  instance1:
+    type: OS::Nova::Server
+    properties:
+      name: instance1
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      networks:
+        - port: { get_resource: instance1_port0 }
+  instance1_port0:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net_id }
+      fixed_ips:
+        - subnet_id: { get_param: private_subnet_id }
+
+outputs:
+  instance0_private_ip:
+    description: IP address of instance0 in private network
+    value: { get_attr: [ instance0, first_address ] }
+  instance0_public_ip:
+    description: Floating IP address of instance0 in public network
+    value: { get_attr: [ instance0_public, floating_ip_address ] }
+  instance1_private_ip:
+    description: IP address of instance1 in private network
+    value: { get_attr: [ instance1, first_address ] }
+

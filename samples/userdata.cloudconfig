@@ -1,0 +1,10 @@
+#cloud-config
+
+packages:
+  - screen
+  - git
+  - vim-enhanced
+package_upgrade: true
+runcmd:
+  - [ touch, /root/flagfile ]
+

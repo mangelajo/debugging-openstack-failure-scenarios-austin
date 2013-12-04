@@ -37,8 +37,23 @@ name: overview
 
 - Open source
 - Cloud/virtualization platform
-- A resource scheduler for your virtual resources
+- A scheduler for your virtual resources
 - IaaS
+
+???
+
+You tell OpenStack what you want, it arranges for you to have:
+
+- networks
+- storage
+- cpu cycles
+- other services
+
+What is IaaS?
+
+- basic plumbing
+- openstack doesn't know about your application
+- still need systems people to deploy stuff on top of openstack
 
 ---
 
@@ -679,7 +694,7 @@ Look for the `tap` device in your iptables rules:
 
 - [ETOOMUCHDATAFORPRESENTATION][flow]
 
-[flow]: compute-br-tun-rules.txt
+[flow]: samples/compute-br-tun-rules.txt
 
 ([Physical view](assets/neutron-physical-view.svg))
 ---
@@ -803,61 +818,242 @@ The name of the external bridge is defined in
 
 ---
 
----
-
 class: center
+name: cloudinit
 # Initial instance configuration with cloud-init
 
 ---
 
-class: center
-# Using the OpenStack API
+[cloud-init][] uses cloud metadata to configure your system
+
+- You may already be using it.  Installed by default on:
+
+  - [Fedora cloud images][fedora]
+  - [Ubuntu cloud images][ubuntu]
+
+[cloud-init]: http://cloudinit.readthedocs.org/en/latest/
+[fedora]: http://fedoraproject.org/en/get-fedora-options#clouds
+[ubuntu]: http://cloud-images.ubuntu.com/
 
 ---
 
-class: center
-# Neutron
+Some useful things `cloud-init` may be doing for you:
+
+- Setting system hostname
+- Provisioning ssh keys
+- Expanding root filesystem
 
 ---
 
-Libvirt configuration for an instance:
+## Metadata?
 
-    # virsh dumpxml 2 | xmllint --xpath //interface -
-    <interface type="bridge">
-          <mac address="fa:16:3e:08:76:25"/>
-          <source bridge="qbr2faf4d4d-5a"/>
-          <target dev="tap2faf4d4d-5a"/>
-          <model type="virtio"/>
-          <driver name="qemu"/>
-          <alias name="net0"/>
-          <address type="pci" domain="0x0000" bus="0x00" slot="0x03" function="0x0"/>
-    </interface>
+Cloud environments (OpenStack, AWS, GCE, etc) make metadata available
+to your instances.
 
----
+- Boot an instance on OpenStack.
+- Log in and run:
 
-Linux bridge device used for firewall rules:
+      # curl http://169.254.169.254/latest/meta-data/
 
-    # brctl show
-    bridge name       bridge id         STP enabled interfaces
-    qbr2faf4d4d-5a    8000.8eddc9fc662f no          qvb2faf4d4d-5a
-                                                    tap2faf4d4d-5a
+???
+
+- Access to 169.254.169.254 controlled by NAT rules in Neutron router.
 
 ---
 
-OVS bridge `br-int`:
+This gets you:
 
-    Bridge br-int
-        Port "qvo2faf4d4d-5a"
-            tag: 1
-            Interface "qvo2faf4d4d-5a"
-        Port patch-tun
-            Interface patch-tun
-                type: patch
-                options: {peer=patch-int}
-        Port br-int
-            Interface br-int
-                type: internal
+    ami-id
+    ami-launch-index
+    ami-manifest-path
+    block-device-mapping/
+    hostname
+    instance-action
+    instance-id
+    instance-type
+    kernel-id
+    local-hostname
+    local-ipv4
+    placement/
+    public-hostname
+    public-ipv4
+    public-keys/
+    ramdisk-id
+    reservation-id
 
+---
+
+## Userdata?
+
+- An arbitrary chunk of data you can associate with your instance when
+  it boots (via `--user-data` option to `nova boot`, or via Horizon).
+
+- Accessible from within the instance at http://169.254.169.254/latest/user-data/.
+
+---
+
+Cloud-init supports user-data in a number of formats:
+
+- Script (starts with `#!`)
+- gzip-compressed content
+- Include file (begins with `#include`)
+- Cloud config data (begins with `#cloud-config`)
+- MIME multipart archive
+
+See [documentation][] for other supported formats.
+
+[documentation]: http://cloudinit.readthedocs.org/en/latest/topics/format.html#user-data-script
+
+???
+
+- `#include` -- list or URLS, one per line.
+- `#cloud-config` -- YAML syntax, like `/etc/cloud/cloud.cfg`
+
+---
+
+## Cloud-config modules
+
+Using cloud-config data (`#cloud-config`) is a powerful way to
+configure your system:
+
+- Create users and groups
+- Create arbitrary files
+- Run arbitrary commands
+- Add yum repositories
+- Install packages
+- Configure certificates
+- Configure resolver
+- Run Chef recipes or Puppet manifests
+
+---
+## A user-data script
+
+Make sure some of my favorite packages are available:
+
+    #!/bin/sh
+
+    yum -y -d1 install git screen vim-enhanced
+
+---
+
+## Using cloud-config
+
+The same thing, but using `cloud-config`:
+
+    #cloud-config
+
+    packages:
+    - screen
+    - git
+    - vim-enhanced
+
+---
+
+## Using cloud-config
+
+Lots of examples [in the docs][].
+
+[in the docs]: http://cloudinit.readthedocs.org/en/latest/topics/examples.html
+
+---
+
+class: center, middle
+name: heat
+
+# Heat
+
+---
+
+## What is Heat?
+
+- Template-based orchestration for OpenStack
+- A simple way to provision groups of resources
+- Autoscaling when combined with [Ceilometer][]
+
+[ceilometer]: https://wiki.openstack.org/wiki/Ceilometer
+
+---
+
+## Heat templates
+
+- Supports AWS CloudFormation syntax
+- Native HOT template format (still developing)
+- Example templates [on GitHub][]
+
+[on github]: https://github.com/openstack/heat-templates
+
+---
+## Heat templates
+
+Templates define:
+
+- Parameters (blanks you can fill in)
+- Resources (things that are provisioned)
+- Outputs (values returned by the provisioning process)
+
+---
+
+## Example template
+
+[Here][] is a sample template that will deploy two Cirros instances,
+one with a floating ip address.
+
+We might use it like this:
+
+    $ heat stack-create -f samples/hot_2_cirros.yml \
+      -P private_net_id=...;private_subnet_id=...;public_net_id=... test_stack
+
+[here]: samples/hot_2_cirros.yml
+
+---
+
+## Example template
+
+- Check status of stack deployment with:
+
+      $ heat stack-list
+
+- After deploy is complete, we have two running instances:
+
+      $ nova list
+      +---------------+-----------+--------+-----------------------------------+
+      | ID            | Name      | Status | Networks                          |
+      +---------------+-----------+--------+-----------------------------------+
+      | 7748da...90d6 | instance0 | ACTIVE | private=10.0.0.3, 192.168.122.203 |
+      | 445d10...e698 | instance1 | ACTIVE | private=10.0.0.4                  |
+      +---------------+-----------+--------+-----------------------------------+
+
+---
+
+## Looking at outputs
+
+- We can see the value of outputs using `heat stack-show`:
+
+      $ heat stack-show test_stack
+      [
+        {
+          "output_value": "10.0.0.4",
+          "description": "IP address of instance1 in private network",
+          "output_key": "instance1_private_ip"
+        },
+        {
+          "output_value": "192.168.122.203",
+          "description": "Floating IP address of instance0 in public network",
+          "output_key": "instance0_public_ip"
+        },
+        .
+        .
+        .
+
+---
+
+## Heat and cloud-init
+
+- Heat makes information available via cloud-init
+- Need to have `heat-cfntools` package installed
+- Heat project makes available [pre-build images]
+
+[prebuild-images]: http://fedorapeople.org/groups/heat/prebuilt-jeos-images/
 
 ---
 
@@ -869,11 +1065,16 @@ class: center, middle
 
 ## PS
 
+The source to these slides in available at:
+
+- http://github.com/larsks/openstack-meetup-2013-12-04
+
 If you like [Markdown][], view the source of these slides, which were
 created using [remark][].
 
 [markdown]: http://en.wikipedia.org/wiki/Markdown
 [remark]: https://github.com/gnab/remark
+[source repository]: https://github.com/larsks/openstack-meetup-2013-12-04
 
 ---
 

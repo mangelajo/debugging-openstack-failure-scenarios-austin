@@ -203,7 +203,7 @@ Services provided by several projects:
 
 - Web interface for managing OpenStack services.
 - Includes interfaces for all core components.
-- Module design allows interfacing with other projects.
+- Modular design allows interfacing with other projects.
 
 .center.small[![][horizon_hilite]]
 
@@ -357,6 +357,17 @@ Listing available images:
 
 ---
 
+## Adding an ssh key
+
+We'll want to upload an ssh key:
+
+    $ nova keypair-add --pubkey ~/.ssh/id_rsa.pub mykey
+
+This will be provisioned onto newly booted instances in order to
+permit remote access.
+
+---
+
 ## Booting an instance
 
 - Need the UUID of our private network:
@@ -371,8 +382,8 @@ Listing available images:
 
 - And now we can boot an instance:
 
-      $ nova boot --image cirros --flavor m1.nano \
-        --key-name lars --nic net-id=99ab...4254 instance0
+      $ nova boot --image fedora-19-x86_64 --flavor m1.small \
+        --key-name mykey --nic net-id=99ab...4254 instance0
 
 ---
 

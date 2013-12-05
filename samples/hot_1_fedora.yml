@@ -36,6 +36,7 @@ resources:
       name: instance0
       image: { get_param: image }
       flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
       networks:
         - port: { get_resource: instance0_port0 }
   instance0_port0:

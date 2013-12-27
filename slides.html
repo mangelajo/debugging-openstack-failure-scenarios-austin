@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>OpenStack Boston 2013-11</title>
+    <title>RHOS 3.0 (Grizzly) Neutron</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <link rel="stylesheet" href="slides.css"></link>
   </head>
@@ -12,21 +12,55 @@ class: center, middle
 
 <img src="cloud-4.png" width="100" />
 
-# Boston OpenStack Meetup
+# RHOS 3.0 Quantum
 
-Dec. 4 2013
+Jan. 15 2014
+
+---
+
+## Quantum
+ 
+- Software defined networking
+- Virtual networks, address provisioning, routing, security groups.
+
+.center.small[![][neutron_hilite]]
+
+[neutron_hilite]: assets/arch-neutron.png
 
 ---
 
-# The Big Picture
 
-- [Overview](#overview)
-- [Using OpenStack](#cli)
-- [Neutron Networking](#neutron)
-- [cloud-init](#cloudinit)
-- [Heat](#heat)
+### Creating a private network
+
+```bash
+quantum net-create net1
+
+quantum subnet-create net1 192.168.0.0/24 --name subnet1
+```
 
 ---
+### Creating a public network
+
+```bash
+quantum net-create public --router-external=True
+
+quantum subnet-create public 10.1.1.0/24 --name public_subnet \
+	--enable_dhcp=False \
+	--allocation-pool start=10.1.1.48,end=10.1.1.191 \
+	--gateway=10.1.1.1
+```
+### Routing the private network
+```
+quantum router-creater router1
+
+quantum router-interface-add router1 subnet1
+
+quantum router-gateway-set router1 public
+```
+
+---
+
+
 class: center,middle
 name: overview
 # Overview

@@ -1,0 +1,35 @@
+Chain PREROUTING (policy ACCEPT)
+target     prot opt source               destination         
+neutron-l3-agent-PREROUTING  all  --  anywhere             anywhere            
+
+Chain POSTROUTING (policy ACCEPT)
+target     prot opt source               destination         
+neutron-l3-agent-POSTROUTING  all  --  anywhere             anywhere            
+neutron-postrouting-bottom  all  --  anywhere             anywhere            
+
+Chain OUTPUT (policy ACCEPT)
+target     prot opt source               destination         
+neutron-l3-agent-OUTPUT  all  --  anywhere             anywhere            
+
+Chain neutron-l3-agent-OUTPUT (1 references)
+target     prot opt source               destination         
+
+Chain neutron-l3-agent-POSTROUTING (1 references)
+target     prot opt source               destination         
+ACCEPT     all  --  anywhere             anywhere            ! ctstate DNAT 
+
+Chain neutron-l3-agent-PREROUTING (1 references)
+target     prot opt source               destination         
+REDIRECT   tcp  --  anywhere             169.254.169.254     tcp dpt:http redir ports 9697 
+
+Chain neutron-l3-agent-float-snat (1 references)
+target     prot opt source               destination         
+
+Chain neutron-l3-agent-snat (1 references)
+target     prot opt source               destination         
+neutron-l3-agent-float-snat  all  --  anywhere             anywhere            
+SNAT       all  --  192.168.0.0/24       anywhere            to:192.168.50.80 
+
+Chain neutron-postrouting-bottom (1 references)
+target     prot opt source               destination         
+neutron-l3-agent-snat  all  --  anywhere             anywhere            

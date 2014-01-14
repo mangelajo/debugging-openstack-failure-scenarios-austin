@@ -36,8 +36,11 @@ but I can get the answers back to you.
  - Tenant network isolation and routing.
  
  - The future of quantum (aka Neutron)
+
+ - API basics
  
  - hands-on: using quantum.
+
  
 ---
 
@@ -61,13 +64,12 @@ IPv6 extended support in RHOS5.0 (Icehouse)
 
  - openvswitch-plugin:
    - VLAN (vlan id) 4096 nets
-   - GRE tunnels (tunnel key = tenant net) 16M nets
-   - VXLAN (RHOS 4.0 ?) 16M nets
- - ML2 plugin: can combine technologies (RHOS >=4.0)
-   
+   - VXLAN (RHOS 3.0 backported) 16M nets, scaless better, more
+   management (setting up multicast groups)
+   - GRE tunnels (tunnel key = tenant net) 16M nets, simple,
+   works, unicast start topology for broadcast traffic.
+     
 ???
-
-TODO: check RHOS 3.0 has VXLAN too?
 
 ---
 
@@ -106,7 +108,7 @@ class: center,middle
 
 Instance network configuration:
 
-    # virsh dumpxml instance-00000013 | xmllint --xpath //interface -
+    # virsh dumpxml instance-00000013 | xpath //interface
     <interface type="bridge">
           <mac address="fa:16:3e:44:8b:7d"/>
           <source bridge="qbr07d958c4-1f"/>
@@ -134,53 +136,298 @@ Instance network configuration:
 
 ([Physical view](assets/neutron-physical-view.png))
 
+
 ---
 
-### Creating a private network
+class: center,middle
 
-```bash
-$ quantum net-create net1
+## On the compute hosts and network agents
 
-$ quantum subnet-create net1 192.168.0.0/24 --name subnet1
-```
 
-Picture here
+---
+### Openvswitch plugin
 
+Bridges, patches, and openflow rules for future 
+interaction with openflow switches.
+
+- [br-tun][]: tunelling translations, broadcast traffic, and path learning.
+
+- br-eth1 (vlan) tenant network ID to vlan-id translation
+  and back.
+
+- orchestrated from neutron-server to the openvswitch-agents
+
+[br-tun]: assets/br-tun-openflow-tables.jpg
+???
+
+  Opendaylight project
+
+  Openflow, internally uses VLAN tags to identify tenant networks
+  
+---
+### Inspecting openflow tables
+
+- Find switches
+  
+  ```bash
+    # ovs-vsctl show
+  ```
+
+- Flow rules on br-tun control disposition of traffic
+
+  ```bash
+    # ovs-ofctl dump-flows br-tun
+  ```
+
+- [openflow-rules-dump][flow]
+
+[flow]: samples/compute-br-tun-rules.txt
+
+ 
+
+([Physical view](assets/neutron-physical-view.svg))
+
+???
+
+Not correlated to next slide graphs
+
+---
+### Openflow tables 
+
+- t0 : local instances traffic
+- t1 : local to broadcast or unicast
+- t2 : pops tunnel ID, pushes internal-VID
+- t10: learns paths from incomming traffic into t20
+- t20: handles unicast (learned routes from incomming traffic,
+otherwise broadcasted)
+- t21: handles broadcast
+
+([br-tun in a graph][br-tun])
+
+[br-tun]:assets/br-tun-openflow-tables.jpg
+
+---
+## The routers
+
+  They live in kernel net namespaces
+  ```bash
+  $ ip netns
+  qdhcp-f742e733-672e-4e76-8003-034185564a90
+  qrouter-7c82790b-e1e6-4451-a772-fb4f39117d5a
+  ```
+  Interfaces
+  ```bash
+  $ ip netns exec qrouter-7c82790b-e1e6-4451-a772-fb4f39117d5a ip addr \
+              | grep "inet "
+    inet 127.0.0.1/8 scope host lo
+    inet 192.168.0.1/24 brd 192.168.0.255 scope global qr-aec131b8-d0
+    inet 10.1.1.2/24 brd 192.168.50.255 scope global qg-fdeb561a-a7
+  ```
+---
+
+## The routers
+  Iptable rules
+  ```bash
+  $ ip netns exec qrouter-7c82790b-e1e6-4451-a772-fb4f39117d5a iptables -L -t nat
+  ...
+  ...
+  ```
+
+[snat-iptables][snat-iptables]  vs  [dnat-iptables][dnat-iptables]
+
+  [snat-iptables]:assets/iptables-qrouter-snat.txt
+  [dnat-iptables]:assets/iptables-qrouter-dnat.txt
+---
+
+class: center,middle
+
+## The future of Neutron
+
+
+---
+### Neutron (RHOS4.0)
+
+ - FWaaS (at router level) basic implementaiton:
+   router policies, audit support. (tenant-wide at this 
+   moment)
+
+ - VPNaaS, connecting different clouds securely: 
+    services, IKE policies, IPSEC policies, site connections
+ 
+ - ML2 plugin: can combine technologies (VXLAN+GRE+..) (RHOS >=4.0)
+ 
+
+???
+
+VPNaaS workflow:
+
+- The tenant creates a VPNService, without any connections.
+- The tenant creates one or more IKEPolicies.
+- The tenant creates one or more IPsecPolicies.
+The tenant creates one or more ipsec-site-connections and associates with the VPNService id, IKEPolicy id and IPsecPolicy id.
+
+Commands:
+
+vpn-service-create      Create a VPNService  
+vpn-service-delete      Delete a given VPNService
+vpn-service-list        List all VPNService for a given tenant.
+vpn-service-show        Show detailed information of a given VPNService.
+vpn-service-update      Update a given VPNservice.
+ 
+vpn-ikepolicy-create       Create an IKEPolicy
+vpn-ikepolicy-delete       Delete a given IKE Policy.
+vpn-ikepolicy-list         List IKEPolicies that belong to a given tenant.
+vpn-ikepolicy-show         Show detailed information of a given IKEPolicy.
+vpn-ikepolicy-update       Update a given IKE Policy.
+ 
+vpn-ipsecpolicy-create     Create an IPsec policy
+vpn-ipsecpolicy-delete     Delete a given IPsec Policy
+vpn-ipsecpolicy-list       List IPsecPolicies that belong to a given tenant    connection.
+vpn-ipsecpolicy-show       Show detailed information of a given IPsec Policy
+vpn-ipsecpolicy-update     Update a given IPsec Policy.
+ 
+ipsec-site-connection-create  Create a ipsec-site-connection
+ipsec-site-connection-delete  Delete a given ipsec-site-connection.
+ipsec-site-connection-list    List ipsec-site-connections that belong to a given tenant.
+ipsec-site-connection-show    Show information of a given ipsec-site-connection.
+ipsec-site-connection-update  Update a given ipsec-site-connection.
+---
+
+### Neutron (RHOS5.0)
+
+  tentative, on discussion
+
+  - Internal Router HA (VRRP)
+  - Scaling out
+  - SSL VPNs
+  - IPv6 SLAAC, DHCPv6: relay, stateful, stateless
+  - configurable ip allocation
+   
+???
+DNSaaS
+
+
+---
+
+class: center,middle
+
+## Neutron API basics
+
+---
+### Brief introduction
+
+ - ReSTful web services
+ - HTTP/1.1
+ - model presentation
+  - JSON (.json)
+  - XML (.xml)
+ 
+ - quantum command line interface is almost a 1:1 mapping
+   of the API with automatic authentication to keystone.
+
+---
+### The guide
+
+- [API-neutron-2.0-internet][]
+
+- [API-neutron-2.0-pdf][]
+
+[API-neutron-2.0-pdf]:assets/neutron2-api.pdf
+[API-neutron-2.0-internet]:http://docs.openstack.org/api/openstack-network/2.0/content/Overview-d1e71.html
+  
+---
+
+class: center,middle
+
+## hands on
 
 ---
 ### Creating a public network
 
+We should initially create the public network(s),
+if created as shared, tenants will be able to
+connect their routers to it themselves.
 ```bash
-$ quantum net-create public --router-external=True
+$ quantum net-create public --router:external=True --shared
+                            
+```
 
+And then we define a subnet on this public network
+```bash
 $ quantum subnet-create public 10.1.1.0/24 --name public_subnet \
 	--enable_dhcp=False \
 	--allocation-pool start=10.1.1.48,end=10.1.1.191 \
 	--gateway=10.1.1.1
 ```
 
-Picture here
+???
+
+
+---
+
+### Creating a private network
+
+
+From here, you can do it in a tenant
+```bash
+$ source keystonerc_user
+```
+
+Create the network
+```bash
+$ quantum net-create privnet1
+```
+
+Create a subnet into your network
+```bash
+$ quantum subnet-create privnet1 192.168.0.0/24 --name privsubnet1
+```
 
 ---
 
 ### Routing the private network
+
+Create the router
 ```bash
 $ quantum router-creater router1
+```
 
-$ quantum router-interface-add router1 subnet1
+Connect the internal interface to our subnet
+```bash
+$ quantum router-interface-add router1 privsubnet1
+```
 
+Set our new router as gateway to the public network
+```bash
 $ quantum router-gateway-set router1 public
 ```
 
-Picture here
+---
+
+### Create an instance
+
+- Need the UUID of our private network:
+
+      $ nova net-list
+      +--------------------------------------+----------+------+
+      | ID                                   | Label    | CIDR |
+      +--------------------------------------+----------+------+
+      | 7e687cc3-8155-4ec2-bd11-ba741ecbf4f0 | public   | None |
+      | 99ab8ebf-ad2f-4a4b-9890-fee37cea4254 | privnet1 | None |
+      +--------------------------------------+----------+------+
+
+- And now we can boot an instance:
+
+      $ nova boot --image fedora-19-x86_64 --flavor m1.small \
+        --key-name mykey --nic net-id=99ab...4254 instance0
+???
+
+glance image-list
+nova keypair-add --pub-key ~/.ssh/id_rsa.pub mykey
 
 ---
 
-### Create a VM
-
----
-
-### Access the outside world
+### Access to the external network
 
 - SNAT (for routed externally routed networks)
 - DNAT (for externally routed networks + floating IPs)
@@ -189,7 +436,9 @@ Picture here
 
 ### Floating IPs (DNAT)
 
-- First we need to *create* a floating ip address:
+- First we need to *create* a floating ip address,
+it's requested from the public IP pool, and 
+assigned to our tenant.
 
 ```bash 
  $ quantum floatingip-create public
@@ -199,7 +448,7 @@ Picture here
       | Field               | Value                                |
       +---------------------+--------------------------------------+
       | fixed_ip_address    |                                      |
-      | floating_ip_address | 192.168.122.204                      |
+      | floating_ip_address | 10.1.1.49                            |
       | floating_network_id | 7e687cc3-8155-4ec2-bd11-ba741ecbf4f0 |
       | id                  | b61bf481-0eb1-431c-bad4-892a62f9e22e |
       | port_id             |                                      |
@@ -209,8 +458,6 @@ Picture here
 ```
 
 ???
-
-TODO: adapt IPs to presentation workflow
 
 We create a floating IP address, neutron will return an IP address
 from the specified network (public) where available
@@ -236,15 +483,51 @@ from the specified network (public) where available
 
   - They allow egress/ingress rules for protocols, ports,
   etc.
----
-
-### Accessing your VM from the outside world
 
 ```bash
-  $ ping 192.168.122.202
-  $ ssh root@192.168.122.202
+$ quantum security-group-rule-create  --direction ingress \
+                                      --protocol tcp      \
+                                      --port-range-min 22 \
+                                      --port-range-max 22 \
+                                      default
+
+$ quantum security-group-rule-create --protocol icmp      \
+                                     --direction ingress  \
+                                    default
 ```
+   - Those rules are applied at instance port level, so they
+   affect VM to VM conectivity.
+
+???
+
+---
+
+### Accessing your VM from the public network
+
+Make sure that your security group rules are in place, by
+default everything is disabled. 
+
+```bash
+  $ ping 10.1.1.2
+  $ ssh root@10.1.1.2
+```
+
   
+---
+
+### Setting up quotas for tenants
+
+```bash
+quantum quota-update [-h] [-f {shell,table}] [-c COLUMN]
+                            [--variable VARIABLE] [--prefix PREFIX]
+                            [--request-format {json,xml}]
+                            [--tenant-id tenant-id] [--network networks]
+                            [--subnet subnets] [--port ports]
+                            [--router routers] [--floatingip floatingips]
+                            [--security-group security_groups]
+                            [--security-group-rule security_group_rules]
+```
+
 ---
 
 class: center, middle
@@ -255,6 +538,11 @@ Questions?
 
   - Miguel Ángel Ajo (mangelajo@redhat.com)
   - Javier Peña (jpena@redhat.com)
+
+Thanks to:
+
+- Lars Kellogg-Stedman
+- Rhys Oxenham
 
 
 

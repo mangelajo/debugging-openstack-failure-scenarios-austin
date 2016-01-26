@@ -1,1 +1,185 @@
-slides.html
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Debugging OpenStack with Ansible and oslogmerger</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" href="slides.css"></link>
+  </head>
+  <body>
+    <textarea id="source">
+
+class: center, middle
+
+# Troubleshooting Openstack with Ansible and oslogmerger <img src="assets/cloud-4-white.png" width="100" />
+
+Jan. 29th 2016, RDO day, CentOS dojo
+
+- Miguel Ángel Ajo (mangelajo@redhat.com)
+
+???
+
+Introduce yourself,
+
+I work on OpenStack Neutron on behalf of Red Hat,
+I help fixing bugs, developing new features, and
+sometimes I give a hand with packaging.
+
+---
+
+class: center, middle
+
+# distributed system = complex interactions
+
+---
+
+# distributed system = complex interactions
+
+.center.medium[![][complex]]
+
+[complex]: assets/openstack-arch-kilo-logicl-v1.png
+
+---
+
+.center.small[![][skip_rope]]
+
+[skip_rope]: assets/openstack-skip-rope.gif
+
+---
+
+## yeah, complex interactions
+
+You ask nova to start an instance:
+
+- Nova &#8594; (nova-scheduler, glance, cinder,
+  neutron, nova-conductor)
+- nova-conductor &#8594; nova-compute
+- Neutron &#8594; (ovs-agent, l3-agent, dhcp-agent)
+- (l3-agent, dhcp-agent, ovs-agent)  &#8594; Neutron 
+- Neutron &#8594; Nova
+- Nova &#8594; nova-conductor &#8594; nova-compute
+
+Your Instance Is Ready (yes! &#9996;, or no &#9785;...)
+
+---
+
+## Releases are stable, but we have too many knobs
+
+Many ways to missconfigure things
+
+.center.small[![][too_many_buttons]]
+
+[too_many_buttons]: assets/too_many_buttons.jpg
+---
+
+## The way openstack logs
+
+### oslo_log
+- example : [oslo_log][]
+
+[oslo_log]: http://docs.openstack.org/developer/oslo.log/examples.html
+
+---
+
+## What do we have now
+
+
+---
+
+## What could we do better.
+
+
+---
+
+## Troubleshooting as a developer
+ - on the gate
+ - locally
+
+
+---
+
+## oslogmerger to the rescue
+ - sure?
+ - well... sort of...
+
+---
+
+## Using Ansible to recover the logs
+
+---
+
+## Troubleshooting for support
+ - Nice
+ - Automate it!
+
+---
+
+## Introducing probes in the system
+- pingers
+- tcpdumps
+- flow dumping
+- but, how?
+
+---
+
+# Wrap them up!
+- a simple sh script
+- a wrapper
+
+---
+
+# Bug found, let's automate a reproducer
+- Ansible, again
+- Try to fix it
+- Run it again
+- Try to fix it
+- Run it again, BINGO!
+
+---
+
+# What's missing
+- move it to stackforge
+- packages
+- simplify gat log merger
+
+---
+
+# Bash example
+  ```bash
+  $ ip netns
+  qdhcp-f742e733-672e-4e76-8003-034185564a90
+  qrouter-7c82790b-e1e6-4451-a772-fb4f39117d5a
+  ```
+  Interfaces
+  ```bash
+  $ ip netns exec qrouter-7c82790b-e1e6-4451-a772-fb4f39117d5a ip addr \
+              | grep "inet "
+    inet 127.0.0.1/8 scope host lo
+    inet 192.168.0.1/24 brd 192.168.0.255 scope global qr-aec131b8-d0
+    inet 10.1.1.2/24 brd 192.168.50.255 scope global qg-fdeb561a-a7
+  ```
+---
+class: center, middle
+
+# THE END
+
+Questions?
+
+  - Miguel Ángel Ajo (mangelajo@redhat.com)
+
+
+Links:
+
+  - http://github.com/mangelajo/oslogmerger
+
+
+
+    </textarea>
+    <script src="remark.js" type="text/javascript"></script>
+    <script type="text/javascript">
+      var slideshow = remark.create();
+    </script>
+  </body>
+</html>
+
+<!-- vim: set ft=markdown : -->
+

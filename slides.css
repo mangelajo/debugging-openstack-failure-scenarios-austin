@@ -133,3 +133,7 @@ code {
 .medium img {
     width: 100%;
 }
+
+.big img {
+    width: 110%;
+}

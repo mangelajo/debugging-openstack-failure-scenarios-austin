@@ -135,7 +135,7 @@ writing to files, and rotating.
 
 ## oslogmerger to the rescue
 
-- sure? well... sort of...
+- it's not magical, but helps
 
 - born out of frustration trying to debug HA deployments
 
@@ -185,7 +185,8 @@ as possible. Clock skew makes the output unusable.
 
 ---
 ### Live demo
-- Live demo goes here :)
+- Live demo goes here
+  - /me crosses fingers :)
 ???
 
 oslogmerger http://logs.openstack.org/40/273140/2/check/gate-tempest-dsvm-neutron-multinode-full/79a4d8f/logs/subnode-2/screen-n-cpu.txt.gz:COMPUTE2
@@ -402,6 +403,7 @@ If we add Ansible to the equation, things become:
 #### ARP dumper
 ```bash
 #!/bin/sh
+ip link set dev br-int up
 tcpdump -e -n -l -i br-int arp 2>&1 | \
     while read line; do
         echo "$(date +%Y-%m-%d\ %H:%M:%S.%03N) tcpdump DEBUG $line";
@@ -446,6 +448,12 @@ while read line; do
      echo "$(date +%Y-%m-%d\ %H:%M:%S.%03N) tcpdump DEBUG $line";
 done
 ```
+???
+It's limited, you need to know the name of the tap in advance,
+a possible improvement here is to automatically look for new
+tap devices, and start logging them as they pop up.
+
+auto-tap-logger :)
 
 ---
 
@@ -455,13 +463,22 @@ done
 
 ---
 
-# What's missing
-- move it to stackforge
-- packages
+# What's missing (1/2)
+- move it to stackforge/openstack
+- package
 - simplify gate log merger
 - filtering options (by error levels)
-- ansible template generator
 
+---
+
+# What's missing (2/2)
+
+- ansible template generator
+- standard set of probes:
+  - pingers
+  - auto-tap-loggers
+  - arp-watcher
+  - others: storage? kvm related?
 
 ---
 class: center, middle
@@ -470,13 +487,16 @@ class: center, middle
 
 Questions? Ideas? Feedback?
 
-  - Miguel Ángel Ajo (mangelajo@redhat.com)
+  Miguel Ángel Ajo (mangelajo@redhat.com)
 
-Links:
 
   - http://github.com/mangelajo/oslogmerger
   - http://www.ansible.com
+  - example : [debug_live_migration][]
 
+http://mangelajo.github.io/openstack-debugging-presentation/
+
+[debug_live_migration]: hhttps://github.com/mangelajo/oslogmerger/tree/master/contrib/debug-live-migration
 
 
     </textarea>

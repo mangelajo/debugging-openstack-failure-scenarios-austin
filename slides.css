@@ -112,7 +112,8 @@ code {
 }
 
 .remark-slide-content {
-	background-image: url("assets/background.png");
+	background-image: url("assets/background_rdoday.png");
+	background-color:#117bb6;
 	color: #fcfcfc;
 }
 

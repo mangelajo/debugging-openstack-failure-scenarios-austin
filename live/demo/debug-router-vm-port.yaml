@@ -2,11 +2,6 @@
 - name: Cleanup old resources
   hosts: controller
   tasks:
-    - name: setup quotas
-      shell: |
-        source ~/keystonerc_admin
-        neutron quota-update --network 100 --router 100 --subnet 100
-
     - name: cleanup old vms
       shell: |
         source ~/keystonerc_admin
@@ -46,6 +41,11 @@
 - name: Configure neutron controllers
   hosts: controller
   tasks:
+    - name: setup quotas
+      shell: |
+        source ~/keystonerc_admin
+        neutron quota-update --network 100 --router 100 --subnet 100
+    
     - name: set neutron & nova for debug, clear logs
       shell: |
         openstack-config --set /etc/neutron/neutron.conf DEFAULT l3_ha True

@@ -40,9 +40,7 @@ class: center, middle
 
 ---
 
-## yeah, complex interactions
-
-You ask nova to start an instance:
+### yeah, go ask for an instance
 
 - Nova &#8594; (nova-scheduler, glance, cinder,
   neutron, nova-conductor)
@@ -51,6 +49,7 @@ You ask nova to start an instance:
 - (l3-agent, dhcp-agent, ovs-agent)  &#8594; Neutron
 - Neutron &#8594; Nova
 - Nova &#8594; nova-conductor &#8594; nova-compute
+- Instance &#8594; ns-metadata-proxy &#8594; metadata-agent &#8594; Nova
 
 Your Instance Is Ready (yes! &#9996;, or no &#9785;...)
 
@@ -461,6 +460,12 @@ auto-tap-logger :)
 
 - OMG, are you sure?  nope..
 
+
+- filtering out useful stuff:
+```bash
+cat logs/mergedlogs.log | \
+   egrep -e '(Lifecycle|ARP|META|NOVA)'
+```
 ---
 
 # What's missing (1/2)

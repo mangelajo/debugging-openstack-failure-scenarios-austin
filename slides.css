@@ -1,27 +1,28 @@
-@import url(http://fonts.googleapis.com/css?family=Droid+Serif);
-@import url(http://fonts.googleapis.com/css?family=Droid+Sans);
+@import url(http://fonts.googleapis.com/css?family=Montserrat);
 
 body {
-	font-family: 'Droid Sans';
+	font-family: 'Montserrat';
 	font-size: 30px;
 }
 h1, h2, h3 {
-	font-family: 'Droid Sans';
+	font-family: 'Montserrat';
 	font-weight: bold;
 	margin-bottom: 0;
 }
-h1 { font-size: 2em; }
-h2 { font-size: 1.8em; }
-h3 { font-size: 1.6em; }
+h1 { font-size: 1.4em; }
+h2 { font-size: 1.2em; }
+h3 { font-size: 1.0em; }
 .footnote {
 	position: absolute;
 	bottom: 3em;
 }
 li p { line-height: 1.25em; }
 .red { color: #fa0000; }
+.white { color: #ffffff !important; }
 .large { font-size: 2em; }
+.small { font-size: 0.6em !important; }
 a, a > code {
-	color: rgb(255, 255, 50);
+	color: #117bb6;
 	text-decoration: none;
 }
 code {
@@ -111,10 +112,30 @@ code {
 	padding-top: 2em;
 }
 
-.remark-slide-content {
-	background-image: url("assets/background_rdoday.png");
-	background-color:#117bb6;
-	color: #fcfcfc;
+/* Force background position to prevent remarks from moving it when using SVG
+ * images. */
+.remark-slide .remark-slide-content {
+    background-position: 0 0;
+    padding-right: 30px;
+    padding-left: 30px;
+}
+
+.remark-slide .remark-slide-content.p {
+    display: inline-block;
+}
+
+/* Non title slides */
+.remark-slide .remark-slide-content:not(.rh_title_slide) {
+	background-image: url("assets/background_summit.svg");
+	color: #000000;
+}
+
+/* Title slides */
+.remark-slide .remark-slide-content.rh_title_slide {
+	background-image: url("assets/background_summit_title.svg");
+	color: #ffffff;
+    padding-top: 250px;
+    padding-left: 250px;
 }
 
 .bg-image-vt100 {
@@ -128,13 +149,34 @@ code {
 }
 
 .small img {
-	width: 60%;
+	width: 35%;
 }
 
 .medium img {
-    width: 100%;
+    width: 60%;
 }
 
 .big img {
-    width: 110%;
+    width: 85%;
+}
+
+.dark_bg {
+    /*background-color: #117bb6;*/
+    background-color: #000000;
+}
+
+/* Page numbers in black and on the left */
+.remark-slide .remark-slide-number {
+    bottom: 22px;
+    opacity: 1;
+    position: absolute;
+    color: #000000;
+    left: 30px;
+    right: auto;
+	font-size: 0.5em;
+}
+
+/* Since I can't get remarks to stop counting title slides I'll hide them */
+.remark-slide .remark-slide-content.no_page_footer .remark-slide-number {
+    opacity: 0;
 }

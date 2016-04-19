@@ -8,13 +8,32 @@
   <body>
     <textarea id="source">
 
+layout: true
+name: title_layout
+count: false
+class: left, rh_title_slide, no_page_footer
+
+---
+
+layout: true
+name: default_layout
+count: true
 class: center, middle
 
-# Troubleshooting Openstack with Ansible and oslogmerger <img src="assets/cloud-4-white.png" width="100" />
+---
 
-Jan. 29th 2016, RDO day, CentOS dojo
+template: title_layout
 
-- Miguel Ángel Ajo (mangelajo@redhat.com)
+# Debugging OpenStack failure scenarios with Ansible and Oslogmerger
+
+### OpenStack Summit Austin
+
+.small[
+
+Miguel Ángel Ajo - Principal Software Engineer (mangelajo@redhat.com)<br>
+Gorka Eguileor - Senior Software Engineer (geguileo@redhat.com)
+
+April 27th 2016]
 
 ???
 
@@ -26,7 +45,7 @@ sometimes I give a hand with packaging.
 
 ---
 
-class: center, middle
+template: default_layout
 
 # distributed system = complex interactions
 
@@ -34,7 +53,7 @@ class: center, middle
 
 # distributed system = complex interactions
 
-.center.medium[![][complex]]
+.center.big[![][complex]]
 
 [complex]: assets/openstack-arch-kilo-logicl-v1.png
 
@@ -65,7 +84,7 @@ Your Instance Is Ready (yes! &#9996;, or no &#9785;...)
 
 Many ways to miss configure things
 
-.center.small[![][too_many_buttons]]
+.center.medium[![][too_many_buttons]]
 
 [too_many_buttons]: assets/too_many_buttons.jpg
 ---
@@ -117,7 +136,7 @@ writing to files, and rotating.
 
 ## OpenStack log format
 
-.center.big[![][log_format]]
+.center.big.dark_bg[![][log_format]]
 
 [log_format]: assets/logformat.png
 
@@ -499,15 +518,34 @@ Questions? Ideas? Feedback?
   - http://www.ansible.com
   - example : [debug_live_migration][]
 
+[debug_live_migration]: hhttps://github.com/mangelajo/oslogmerger/tree/master/contrib/debug-live-migration
+
 http://mangelajo.github.io/openstack-debugging-presentation/
 
-[debug_live_migration]: hhttps://github.com/mangelajo/oslogmerger/tree/master/contrib/debug-live-migration
+---
+
+template: title_layout
+background-image: url("assets/thank_you.svg")
+
+---
+
+template: default_layout
+count: false
+background-image: url("assets/cc.svg")
+class: white, no_page_footer
+
+<br><br>
+<br><br>
+Except where otherwise noted, this work is licensed under
+http://creativecommons.org/licenses/by/4.0/
+
+
 
 
     </textarea>
     <script src="remark.js" type="text/javascript"></script>
     <script type="text/javascript">
-      var slideshow = remark.create();
+      var slideshow = remark.create({ratio: '16:9'});
     </script>
   </body>
 </html>

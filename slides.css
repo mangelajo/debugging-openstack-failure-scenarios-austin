@@ -2,16 +2,15 @@
 
 body {
 	font-family: 'Montserrat';
-	font-size: 30px;
 }
 h1, h2, h3 {
 	font-family: 'Montserrat';
 	font-weight: bold;
 	margin-bottom: 0;
 }
-h1 { font-size: 1.4em; }
-h2 { font-size: 1.2em; }
-h3 { font-size: 1.0em; }
+h1 { font-size: 42px !important; }
+h2 { font-size: 36px !important; }
+h3 { font-size: 30px !important; }
 .footnote {
 	position: absolute;
 	bottom: 3em;
@@ -20,7 +19,7 @@ li p { line-height: 1.25em; }
 .red { color: #fa0000; }
 .white { color: #ffffff !important; }
 .large { font-size: 2em; }
-.small { font-size: 0.6em !important; }
+.small { font-size: 18px !important; }
 a, a > code {
 	color: #117bb6;
 	text-decoration: none;
@@ -30,7 +29,7 @@ code {
 	-web-border-radius: 5px;
 	background: #c7c8c2;
 	border-radius: 5px;
-	font-size: 14px;
+	font-size: 14px !important;
 	padding: 2px;
 }
 .pull-left {
@@ -115,9 +114,10 @@ code {
 /* Force background position to prevent remarks from moving it when using SVG
  * images. */
 .remark-slide .remark-slide-content {
-    background-position: 0 0;
-    padding-right: 30px;
-    padding-left: 30px;
+    background-position: 0 0 !important;
+    background-size: 100% 100% !important;
+    padding: 0px 30px 0px 30px;
+	font-size: 30px !important;
 }
 
 .remark-slide .remark-slide-content.p {
@@ -179,4 +179,7 @@ code {
 /* Since I can't get remarks to stop counting title slides I'll hide them */
 .remark-slide .remark-slide-content.no_page_footer .remark-slide-number {
     opacity: 0;
+}
+
+.remark-slide {
 }

@@ -15,6 +15,12 @@ class: left, rh_title_slide, no_page_footer
 ---
 
 layout: true
+name: section_layout
+class: left, rh_section_slide, no_page_footer
+
+---
+
+layout: true
 name: default_layout
 class: left
 
@@ -43,8 +49,6 @@ sometimes I give a hand with packaging.
 
 ---
 
-template: default_layout
-
 # distributed system = complex interactions
 
 --
@@ -55,7 +59,7 @@ template: default_layout
 
 ---
 
-# yeah, go ask for an instance
+# Requesting an instance
 
 - Nova &#8594; (nova-scheduler, glance, cinder,
   neutron, nova-conductor)
@@ -70,67 +74,60 @@ Your Instance Is Ready (yes! &#9996;, or no &#9785;...)
 
 ---
 
-.center.small[![][skip_rope]]
+# Clustered component (I) · Request
 
-[skip_rope]: assets/openstack-skip-rope.gif
-
----
-
-# Releases are stable, but we have too many knobs
-
-Many ways to miss configure things
-
-.center.medium[![][too_many_buttons]]
-
-[too_many_buttons]: assets/too_many_buttons.jpg
----
-
-# What logs do we have
-
-- Hundreds of scattered logs: every single daemon has one.
-- Do you cluster?, then even more!, daemons replicated!
-
----
-
-# Cluster ex. API request & RPC
-
-.center.big[![][clustered_request_1]]
+.big[![][clustered_request_1]]
 
 [clustered_request_1]: assets/clustered_request_1.svg
 
 ---
 
-# RPC response
+# Clustered component (II) · RPC response
 
-.center.big[![][clustered_request_2]]
+.big[![][clustered_request_2]]
 
 [clustered_request_2]: assets/clustered_request_2.svg
 
 ---
 
-# Next API request, balanced
+# Clustered component (III) · Balanced Request
 
-.center.big[![][clustered_request_3]]
+.big[![][clustered_request_3]]
 
 [clustered_request_3]: assets/clustered_request_3.svg
 
 ---
 
-# The way openstack logs
+# OpenStack is complex
 
-All projects use oslo_log library, you can send to a
-centralized log server, but the most common way is
-writing to files, and rotating.
+- Large number of components
+- Complex inter component flows
+- Complex component flows
+- Large number of configuration options
+- Many deployment possibilities:
+    * Hypervisors
+    * Storage backends
+    * Network agents
 
-### oslo_log
-- example : [oslo_log][]
-- format definition : [oslo_formats][]
+---
 
-[oslo_log]: http://docs.openstack.org/developer/oslo.log/examples.html
-[oslo_formats]: https://github.com/openstack/oslo.log/blob/88c317195d3f8a0131a07b6d13b1bb594965f5da/oslo_log/_options.py#L124
+# Root Cause Analysis
+
+- Non trivial
+- Requires a lot of knowledge
+- Log crawling
+    * Logs may be centralized
+    * But may be scattered &#8594; Jumping from one log file to another
+        + PoC
+        + Laboratory
+        + Testing
+        + You just have the log files
+
 ---
 
 # OpenStack log format
+
+OpenStack services use *oslo_log* library
 
 .center.big.dark_bg[![][log_format]]
 
@@ -138,29 +135,11 @@ writing to files, and rotating.
 
 ---
 
-# What could we do better
+# Desired for RCA
 
- - LAAS: LogAsAService?, just kidding, or may be not...
+  - Coalescing separate logs, from:
 
- - Configure to some sort of centralized log by default and provide logstash,
-   but that's heavy.
-
----
-
-# oslogmerger to the rescue
-
-- it's not magical, but helps
-
-- born out of frustration trying to debug HA deployments
-
-- proven useful to debug stuff on production and in the gate
-
----
-
-# oslogmerger: what does it do?
-
-  - coalescing separate logs, from:
-
+```bash
         FILE1:
         (date2) (PID) (level) (codepath) (req-id) (message-1)
 
@@ -169,33 +148,136 @@ writing to files, and rotating.
 
         FILE3:
         (date0) (PID) (level) (codepath) (req-id) (message-3)
+```
+
+--
 
   - to:
+```bash
         (date0) [FILE3] (PID) (level) (codepath) (req-id) (message-3)
         (date1) [FILE2] (PID) (level) (codepath) (req-id) (message-2)
         (date2) [FILE1] (PID) (level) (codepath) (req-id) (message-1)
-
-???
-
-Limitations of this approach: time synchronization has to be as good
-as possible. Clock skew makes the output unusable.
+```
 
 ---
 
-# Troubleshooting as a developer
- - on the gate
+# oslogmerger
+
+- Stands for OpenStack log merger
+- Simple tool to help with this log crawling
+- Coalesces multiple log files
+- Born out of frustration trying to debug complex scenarios
+- Proven useful to:
+    * Debug HA deployments in production
+    * Customer cases where only logs are present
+
+---
+
+# Functionality
+
+- Merge log formats:
+    * OpenStack format
+    * /var/log/messages
+    * Timedelta logs
+- Source files:
+    * Local
+    * Remote URL (locally cached)
+- File alias definition:
+    * Manually
+    * Automatic generation
+    * Use file
+- Multi-line log entry support
+- Run for speed or reduced memory footprint
+
+???
+
+#### Limitations
+
+- Clock skews between services makes the output unusable
+- No custom OpenStack log formats
+- Timestamp based logs require untouched file dates
+
+---
+
+# Installation
+
+- With pip for pypi:
+
  ```bash
- $ oslogmerger \
-   http://logs.openstack.org/.../logs/subnode-2/screen-n-cpu.txt.gz:CMP2 \
-   http://logs.openstack.org/.../logs/subnode-2/screen-q-agt.txt.gz:OVS2 \
-   http://logs.openstack.org/.../logs/screen-q-dhcp.txt.gz:QDHCP \
-   http://logs.openstack.org/.../logs/screen-n-cpu.txt.gz:CMP1 \
-   http://logs.openstack.org/.../logs/screen-q-agt.txt.gz:OVS1 \
-   http://logs.openstack.org/.../logs/screen-n-api.txt.gz:NOVAAPI \
-   http://logs.openstack.org/.../logs/screen-q-svc.txt.gz:NEUTRON
- ```
-- COMPUTE2, OVS2, QDHCP ... are aliases
-- remote URLs are cached locally
+$ virtualenv .venv
+$ source .ven/bin/activate
+$ pip install os-log-merger
+```
+
+--
+
+- With pip from master:
+```bash
+$ virtualenv .venv
+$ source .ven/bin/activate
+$ pip install git+https://github.com/mangelajo/os-log-merger
+```
+
+--
+
+- Direct download:
+```bash
+$ curl https://raw.githubusercontent.com/mangelajo/os-log-merger/master/oslogmerger/oslogmerger.py > \
+  oslogmerger.py
+```
+
+---
+
+# Use case
+
+.left-column[```bash
+└── customer
+    ├── node1
+    │   └── var
+    │       └── log
+    │           ├── messages
+    │           ├── dmesg
+    │           ├── cinder
+    │           │   ├── api.log
+    │           │   ├── scheduler.log
+    │           │   └── volume.log
+    │           ├── nova
+    │           │   ├── api.log
+    │           │   ├── scheduler.log
+    │           │   └── compute.log
+    │           └── neutron
+    │               ├── api.log
+    │               ├── registry.log
+    │               └── l3-agent.log
+    ├── node2
+    │   └── ...
+    │
+    └── node3
+        └── ...
+```]
+
+--
+
+.right-column[```bash
+$ oslogmerger \
+  -a3 \
+  -ml customer/node?/var/log/messages \
+  -tl customer/node?/var/log/dmesg \
+  customer/node?/var/log/{cinder,nova,neutron}/*.log
+```]
+--
+
+.right-column[```bash
+[421482.914824] [2/dmesg] e1000e: enp0s25 NIC Link...
+Apr 27 10:23:33 [1/messages] node1 systemd: Create...
+2016-04-27 10:23:34.680 [1/C-API] 5272 INFO cinder...
+2016-04-27 10:23:34.683 [3/Q-AGT] 17781 INFO neutr...
+2016-04-27 10:24:34.690 [1/C-SCH] 2030 DEBUG neutr...
+2016-04-27 10:25:34.700 [1/C-VOL] 16075 INFO cinde...
+2016-04-27 10:23:34.707 [2/Q-L3] 18065 DEBUG oslo_...
+2016-04-27 10:26:34.710 [1/N-API] 2802 DEBUG keyst...
+2016-04-27 10:27:34.680 [2/N-CPU] 16049 WARNING no...
+```]
 
 ---
 # Live demo
@@ -502,14 +584,23 @@ cat logs/mergedlogs.log | \
   - others: storage? kvm related?
 
 ---
-class: center, middle
 
-# THE END
+template: section_layout
 
-Questions? Ideas? Feedback?
+# <center>QUESTIONS?</center>
 
-  Miguel Ángel Ajo (mangelajo@redhat.com)
+<center>
+<br>Miguel Ángel Ajo (mangelajo@redhat.com)
+<br>Gorka Eguileor (geguileo@redhat.com)
+</center>
 
+Presentation available at:
+.medium[
+- http://mangelajo.github.io/debugging-openstack-failure-scenarios-austin
+- http://akrog.github.io/debugging-openstack-failure-scenarios-austin
+]
+
+Relevant links:
 
   - http://github.com/mangelajo/oslogmerger
   - http://www.ansible.com
@@ -517,7 +608,6 @@ Questions? Ideas? Feedback?
 
 [debug_live_migration]: https://github.com/mangelajo/oslogmerger/tree/master/contrib/debug-live-migration
 
-http://mangelajo.github.io/openstack-debugging-presentation/
 
 ---
 
@@ -526,12 +616,13 @@ background-image: url("assets/thank_you.svg")
 
 ---
 
-template: default_layout
+template: section_layout
 background-image: url("assets/cc.svg")
 class: center, middle, white, no_page_footer
 
-<br><br><br><br>
+<br><br><br>
 Except where otherwise noted, this work is licensed under
+
 http://creativecommons.org/licenses/by/4.0/
 
 

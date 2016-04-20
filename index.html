@@ -10,15 +10,13 @@
 
 layout: true
 name: title_layout
-count: false
 class: left, rh_title_slide, no_page_footer
 
 ---
 
 layout: true
 name: default_layout
-count: true
-class: center, middle
+class: left
 
 ---
 
@@ -49,17 +47,15 @@ template: default_layout
 
 # distributed system = complex interactions
 
----
+--
 
-# distributed system = complex interactions
-
-.center.big[![][complex]]
+.big[![][complex]]
 
 [complex]: assets/openstack-arch-kilo-logicl-v1.png
 
 ---
 
-### yeah, go ask for an instance
+# yeah, go ask for an instance
 
 - Nova &#8594; (nova-scheduler, glance, cinder,
   neutron, nova-conductor)
@@ -80,7 +76,7 @@ Your Instance Is Ready (yes! &#9996;, or no &#9785;...)
 
 ---
 
-## Releases are stable, but we have too many knobs
+# Releases are stable, but we have too many knobs
 
 Many ways to miss configure things
 
@@ -89,14 +85,14 @@ Many ways to miss configure things
 [too_many_buttons]: assets/too_many_buttons.jpg
 ---
 
-## What logs do we have
+# What logs do we have
 
 - Hundreds of scattered logs: every single daemon has one.
 - Do you cluster?, then even more!, daemons replicated!
 
 ---
 
-### Cluster ex. API request & RPC
+# Cluster ex. API request & RPC
 
 .center.big[![][clustered_request_1]]
 
@@ -104,7 +100,7 @@ Many ways to miss configure things
 
 ---
 
-### RPC response
+# RPC response
 
 .center.big[![][clustered_request_2]]
 
@@ -112,7 +108,7 @@ Many ways to miss configure things
 
 ---
 
-### Next API request, balanced
+# Next API request, balanced
 
 .center.big[![][clustered_request_3]]
 
@@ -120,7 +116,7 @@ Many ways to miss configure things
 
 ---
 
-## The way openstack logs
+# The way openstack logs
 
 All projects use oslo_log library, you can send to a
 centralized log server, but the most common way is
@@ -134,7 +130,7 @@ writing to files, and rotating.
 [oslo_formats]: https://github.com/openstack/oslo.log/blob/88c317195d3f8a0131a07b6d13b1bb594965f5da/oslo_log/_options.py#L124
 ---
 
-## OpenStack log format
+# OpenStack log format
 
 .center.big.dark_bg[![][log_format]]
 
@@ -142,7 +138,7 @@ writing to files, and rotating.
 
 ---
 
-## What could we do better
+# What could we do better
 
  - LAAS: LogAsAService?, just kidding, or may be not...
 
@@ -151,7 +147,7 @@ writing to files, and rotating.
 
 ---
 
-## oslogmerger to the rescue
+# oslogmerger to the rescue
 
 - it's not magical, but helps
 
@@ -161,7 +157,7 @@ writing to files, and rotating.
 
 ---
 
-### oslogmerger: what does it do?
+# oslogmerger: what does it do?
 
   - coalescing separate logs, from:
 
@@ -186,7 +182,7 @@ as possible. Clock skew makes the output unusable.
 
 ---
 
-#### Troubleshooting as a developer
+# Troubleshooting as a developer
  - on the gate
  ```bash
  $ oslogmerger \
@@ -202,7 +198,7 @@ as possible. Clock skew makes the output unusable.
 - remote URLs are cached locally
 
 ---
-### Live demo
+# Live demo
 - Live demo goes here
   - /me crosses fingers :)
 ???
@@ -219,7 +215,7 @@ look for: _get_dhcp_agents_hosting_network
 
 ---
 
-### Troubleshooting & support
+# Troubleshooting & support
 
 If we add Ansible to the equation, things become:
 
@@ -231,7 +227,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-### Ansible and oslogmerger
+# Ansible and oslogmerger
 
 - Ansible
  - orchestrates manipulation of the hosts
@@ -243,7 +239,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-#### Using Ansible to set the hosts (1/2)
+# Using Ansible to set the hosts (I)
 
  ```yaml
  ---
@@ -274,7 +270,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-#### Using Ansible to set the hosts (2/2)
+# Using Ansible to set the hosts (II)
 
  ```yaml
  - name: Restart compute services.
@@ -293,7 +289,7 @@ If we add Ansible to the equation, things become:
  ```
 ---
 
-#### Ansible: reproduce the issue
+# Ansible: reproduce the issue
 
  ```yaml
  - name: Migrate back and forth
@@ -314,7 +310,7 @@ If we add Ansible to the equation, things become:
 ---
 
 
-#### Using Ansible to grab the logs
+# Using Ansible to grab the logs
 
  ```yaml
  - name: Fetch logs from hosts
@@ -337,7 +333,7 @@ If we add Ansible to the equation, things become:
  ```
 - at the end, logs are locally stored to logs/$hostname/var/log/...
 ---
-#### Ansible: local log merge
+# Ansible: local log merge
 ```yaml
 - name: Final merge
   hosts: command-controller # a dirty trick to get this locally ran once
@@ -362,7 +358,7 @@ If we add Ansible to the equation, things become:
 ```
 ---
 
-## Introducing probes in the system
+# Introducing probes in the system
 - pingers
 - tcpdumps
 - flow dumping
@@ -370,7 +366,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-#### Ansible: setting up probes (1/2)
+# Ansible: setting up probes (I)
 
  ```yaml
  - name: Start pingers and arp loggers
@@ -391,7 +387,7 @@ If we add Ansible to the equation, things become:
    ( continues on next slide )
 ```
 ---
-#### Ansible: setting up probes (2/2)
+# Ansible: setting up probes (II)
 ```yaml
   (continues on previous slide)
 
@@ -416,7 +412,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-# Wrap them up!
+# Wrap them up! (I)
 
 #### ARP dumper
 ```bash
@@ -437,6 +433,7 @@ ping -i 0.5 $1 | \
 ```
 
 ---
+# Wrap them up! (II)
 
 #### TAP dumper
 ```bash
@@ -530,12 +527,10 @@ background-image: url("assets/thank_you.svg")
 ---
 
 template: default_layout
-count: false
 background-image: url("assets/cc.svg")
-class: white, no_page_footer
+class: center, middle, white, no_page_footer
 
-<br><br>
-<br><br>
+<br><br><br><br>
 Except where otherwise noted, this work is licensed under
 http://creativecommons.org/licenses/by/4.0/
 
@@ -545,7 +540,10 @@ http://creativecommons.org/licenses/by/4.0/
     </textarea>
     <script src="remark.js" type="text/javascript"></script>
     <script type="text/javascript">
-      var slideshow = remark.create({ratio: '16:9'});
+      var slideshow = remark.create({
+        ratio: '16:9',
+        countIncrementalSlides: false
+      });
     </script>
   </body>
 </html>

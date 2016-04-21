@@ -8,13 +8,36 @@
   <body>
     <textarea id="source">
 
-class: center, middle
+layout: true
+name: title_layout
+class: left, rh_title_slide, no_page_footer
 
-# Troubleshooting Openstack with Ansible and oslogmerger <img src="assets/cloud-4-white.png" width="100" />
+---
 
-Jan. 29th 2016, RDO day, CentOS dojo
+layout: true
+name: section_layout
+class: left, rh_section_slide, no_page_footer
 
-- Miguel Ángel Ajo (mangelajo@redhat.com)
+---
+
+layout: true
+name: default_layout
+class: left
+
+---
+
+template: title_layout
+
+# Debugging OpenStack failure scenarios with Ansible and Oslogmerger
+
+### OpenStack Summit Austin
+
+.small[
+
+Miguel Ángel Ajo - Principal Software Engineer (mangelajo@redhat.com)<br>
+Gorka Eguileor - Senior Software Engineer (geguileo@redhat.com)
+
+April 27th 2016]
 
 ???
 
@@ -26,21 +49,17 @@ sometimes I give a hand with packaging.
 
 ---
 
-class: center, middle
-
 # distributed system = complex interactions
 
----
+--
 
-# distributed system = complex interactions
-
-.center.medium[![][complex]]
+.big[![][complex]]
 
 [complex]: assets/openstack-arch-kilo-logicl-v1.png
 
 ---
 
-### yeah, go ask for an instance
+# Requesting an instance
 
 - Nova &#8594; (nova-scheduler, glance, cinder,
   neutron, nova-conductor)
@@ -55,97 +74,72 @@ Your Instance Is Ready (yes! &#9996;, or no &#9785;...)
 
 ---
 
-.center.small[![][skip_rope]]
+# Clustered component (I) · Request
 
-[skip_rope]: assets/openstack-skip-rope.gif
-
----
-
-## Releases are stable, but we have too many knobs
-
-Many ways to miss configure things
-
-.center.small[![][too_many_buttons]]
-
-[too_many_buttons]: assets/too_many_buttons.jpg
----
-
-## What logs do we have
-
-- Hundreds of scattered logs: every single daemon has one.
-- Do you cluster?, then even more!, daemons replicated!
-
----
-
-### Cluster ex. API request & RPC
-
-.center.big[![][clustered_request_1]]
+.big[![][clustered_request_1]]
 
 [clustered_request_1]: assets/clustered_request_1.svg
 
 ---
 
-### RPC response
+# Clustered component (II) · RPC response
 
-.center.big[![][clustered_request_2]]
+.big[![][clustered_request_2]]
 
 [clustered_request_2]: assets/clustered_request_2.svg
 
 ---
 
-### Next API request, balanced
+# Clustered component (III) · Balanced Request
 
-.center.big[![][clustered_request_3]]
+.big[![][clustered_request_3]]
 
 [clustered_request_3]: assets/clustered_request_3.svg
 
 ---
 
-## The way openstack logs
+# OpenStack is complex
 
-All projects use oslo_log library, you can send to a
-centralized log server, but the most common way is
-writing to files, and rotating.
+- Large number of components
+- Complex inter component flows
+- Complex component flows
+- Large number of configuration options
+- Many deployment possibilities:
+    * Hypervisors
+    * Storage backends
+    * Network agents
 
-### oslo_log
-- example : [oslo_log][]
-- format definition : [oslo_formats][]
-
-[oslo_log]: http://docs.openstack.org/developer/oslo.log/examples.html
-[oslo_formats]: https://github.com/openstack/oslo.log/blob/88c317195d3f8a0131a07b6d13b1bb594965f5da/oslo_log/_options.py#L124
 ---
 
-## OpenStack log format
+# Root Cause Analysis
 
-.center.big[![][log_format]]
+- Non trivial
+- Requires a lot of knowledge
+- Log crawling
+    * Logs may be centralized
+    * But may be scattered &#8594; Jumping from one log file to another
+        + PoC
+        + Laboratory
+        + Testing
+        + You just have the log files
+
+---
+
+# OpenStack log format
+
+OpenStack services use *oslo_log* library
+
+.center.big.dark_bg[![][log_format]]
 
 [log_format]: assets/logformat.png
 
 ---
 
-## What could we do better
+# Desired for RCA
 
- - LAAS: LogAsAService?, just kidding, or may be not...
+  - Coalescing separate logs, from:
 
- - Configure to some sort of centralized log by default and provide logstash,
-   but that's heavy.
-
----
-
-## oslogmerger to the rescue
-
-- it's not magical, but helps
-
-- born out of frustration trying to debug HA deployments
-
-- proven useful to debug stuff on production and in the gate
-
----
-
-### oslogmerger: what does it do?
-
-  - coalescing separate logs, from:
-
+```bash
         FILE1:
         (date2) (PID) (level) (codepath) (req-id) (message-1)
 
@@ -154,36 +148,139 @@ writing to files, and rotating.
 
         FILE3:
         (date0) (PID) (level) (codepath) (req-id) (message-3)
+```
+
+--
 
   - to:
+```bash
         (date0) [FILE3] (PID) (level) (codepath) (req-id) (message-3)
         (date1) [FILE2] (PID) (level) (codepath) (req-id) (message-2)
         (date2) [FILE1] (PID) (level) (codepath) (req-id) (message-1)
+```
+
+---
+
+# oslogmerger
+
+- Stands for OpenStack log merger
+- Simple tool to help with this log crawling
+- Coalesces multiple log files
+- Born out of frustration trying to debug complex scenarios
+- Proven useful to:
+    * Debug HA deployments in production
+    * Customer cases where only logs are present
+
+---
+
+# Functionality
+
+- Merge log formats:
+    * OpenStack format
+    * /var/log/messages
+    * Timedelta logs
+- Source files:
+    * Local
+    * Remote URL (locally cached)
+- File alias definition:
+    * Manually
+    * Automatic generation
+    * Use file
+- Multi-line log entry support
+- Run for speed or reduced memory footprint
 
 ???
 
-Limitations of this approach: time synchronization has to be as good
-as possible. Clock skew makes the output unusable.
+#### Limitations
+
+- Clock skews between services makes the output unusable
+- No custom OpenStack log formats
+- Timestamp based logs require untouched file dates
 
 ---
 
-#### Troubleshooting as a developer
- - on the gate
+# Installation
+
+- With pip for pypi:
+
  ```bash
- $ oslogmerger \
-   http://logs.openstack.org/.../logs/subnode-2/screen-n-cpu.txt.gz:CMP2 \
-   http://logs.openstack.org/.../logs/subnode-2/screen-q-agt.txt.gz:OVS2 \
-   http://logs.openstack.org/.../logs/screen-q-dhcp.txt.gz:QDHCP \
-   http://logs.openstack.org/.../logs/screen-n-cpu.txt.gz:CMP1 \
-   http://logs.openstack.org/.../logs/screen-q-agt.txt.gz:OVS1 \
-   http://logs.openstack.org/.../logs/screen-n-api.txt.gz:NOVAAPI \
-   http://logs.openstack.org/.../logs/screen-q-svc.txt.gz:NEUTRON
- ```
-- COMPUTE2, OVS2, QDHCP ... are aliases
-- remote URLs are cached locally
+$ virtualenv .venv
+$ source .ven/bin/activate
+$ pip install os-log-merger
+```
+
+--
+
+- With pip from master:
+```bash
+$ virtualenv .venv
+$ source .ven/bin/activate
+$ pip install git+https://github.com/mangelajo/os-log-merger
+```
+
+--
+
+- Direct download:
+```bash
+$ curl https://raw.githubusercontent.com/mangelajo/os-log-merger/master/oslogmerger/oslogmerger.py > \
+  oslogmerger.py
+```
 
 ---
-### Live demo
+
+# Use case
+
+.left-column[```bash
+└── customer
+    ├── node1
+    │   └── var
+    │       └── log
+    │           ├── messages
+    │           ├── dmesg
+    │           ├── cinder
+    │           │   ├── api.log
+    │           │   ├── scheduler.log
+    │           │   └── volume.log
+    │           ├── nova
+    │           │   ├── api.log
+    │           │   ├── scheduler.log
+    │           │   └── compute.log
+    │           └── neutron
+    │               ├── api.log
+    │               ├── registry.log
+    │               └── l3-agent.log
+    ├── node2
+    │   └── ...
+    │
+    └── node3
+        └── ...
+```]
+
+--
+
+.right-column[```bash
+$ oslogmerger \
+  -a3 \
+  -ml customer/node?/var/log/messages \
+  -tl customer/node?/var/log/dmesg \
+  customer/node?/var/log/{cinder,nova,neutron}/*.log
+```]
+--
+
+.right-column[```bash
+[421482.914824] [2/dmesg] e1000e: enp0s25 NIC Link...
+Apr 27 10:23:33 [1/messages] node1 systemd: Create...
+2016-04-27 10:23:34.680 [1/C-API] 5272 INFO cinder...
+2016-04-27 10:23:34.683 [3/Q-AGT] 17781 INFO neutr...
+2016-04-27 10:24:34.690 [1/C-SCH] 2030 DEBUG neutr...
+2016-04-27 10:25:34.700 [1/C-VOL] 16075 INFO cinde...
+2016-04-27 10:23:34.707 [2/Q-L3] 18065 DEBUG oslo_...
+2016-04-27 10:26:34.710 [1/N-API] 2802 DEBUG keyst...
+2016-04-27 10:27:34.680 [2/N-CPU] 16049 WARNING no...
+```]
+
+---
+# Live demo
 - Live demo goes here
   - /me crosses fingers :)
 ???
@@ -200,7 +297,7 @@ look for: _get_dhcp_agents_hosting_network
 
 ---
 
-### Troubleshooting & support
+# Troubleshooting & support
 
 If we add Ansible to the equation, things become:
 
@@ -212,7 +309,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-### Ansible and oslogmerger
+# Ansible and oslogmerger
 
 - Ansible
  - orchestrates manipulation of the hosts
@@ -224,7 +321,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-#### Using Ansible to set the hosts (1/2)
+# Using Ansible to set the hosts (I)
 
  ```yaml
  ---
@@ -255,7 +352,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-#### Using Ansible to set the hosts (2/2)
+# Using Ansible to set the hosts (II)
 
  ```yaml
  - name: Restart compute services.
@@ -274,7 +371,7 @@ If we add Ansible to the equation, things become:
  ```
 ---
 
-#### Ansible: reproduce the issue
+# Ansible: reproduce the issue
 
  ```yaml
  - name: Migrate back and forth
@@ -295,7 +392,7 @@ If we add Ansible to the equation, things become:
 ---
 
 
-#### Using Ansible to grab the logs
+# Using Ansible to grab the logs
 
  ```yaml
  - name: Fetch logs from hosts
@@ -318,7 +415,7 @@ If we add Ansible to the equation, things become:
  ```
 - at the end, logs are locally stored to logs/$hostname/var/log/...
 ---
-#### Ansible: local log merge
+# Ansible: local log merge
 ```yaml
 - name: Final merge
   hosts: command-controller # a dirty trick to get this locally ran once
@@ -343,7 +440,7 @@ If we add Ansible to the equation, things become:
 ```
 ---
 
-## Introducing probes in the system
+# Introducing probes in the system
 - pingers
 - tcpdumps
 - flow dumping
@@ -351,7 +448,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-#### Ansible: setting up probes (1/2)
+# Ansible: setting up probes (I)
 
  ```yaml
  - name: Start pingers and arp loggers
@@ -372,7 +469,7 @@ If we add Ansible to the equation, things become:
    ( continues on next slide )
 ```
 ---
-#### Ansible: setting up probes (2/2)
+# Ansible: setting up probes (II)
 ```yaml
   (continues on previous slide)
 
@@ -397,7 +494,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-# Wrap them up!
+# Wrap them up! (I)
 
 #### ARP dumper
 ```bash
@@ -418,6 +515,7 @@ ping -i 0.5 $1 | \
 ```
 
 ---
+# Wrap them up! (II)
 
 #### TAP dumper
 ```bash
@@ -486,28 +584,57 @@ cat logs/mergedlogs.log | \
   - others: storage? kvm related?
 
 ---
-class: center, middle
 
-# THE END
+template: section_layout
 
-Questions? Ideas? Feedback?
+# <center>QUESTIONS?</center>
 
-  Miguel Ángel Ajo (mangelajo@redhat.com)
+<center>
+<br>Miguel Ángel Ajo (mangelajo@redhat.com)
+<br>Gorka Eguileor (geguileo@redhat.com)
+</center>
 
+Presentation available at:
+.medium[
+- http://mangelajo.github.io/debugging-openstack-failure-scenarios-austin
+- http://akrog.github.io/debugging-openstack-failure-scenarios-austin
+]
+
+Relevant links:
 
   - http://github.com/mangelajo/oslogmerger
   - http://www.ansible.com
   - example : [debug_live_migration][]
 
-http://mangelajo.github.io/openstack-debugging-presentation/
+[debug_live_migration]: https://github.com/mangelajo/oslogmerger/tree/master/contrib/debug-live-migration
 
-[debug_live_migration]: hhttps://github.com/mangelajo/oslogmerger/tree/master/contrib/debug-live-migration
+
+---
+
+template: title_layout
+background-image: url("assets/thank_you.svg")
+
+---
+
+template: section_layout
+background-image: url("assets/cc.svg")
+class: center, middle, white, no_page_footer
+
+<br><br><br>
+Except where otherwise noted, this work is licensed under
+
+http://creativecommons.org/licenses/by/4.0/
+
+
 
 
     </textarea>
     <script src="remark.js" type="text/javascript"></script>
     <script type="text/javascript">
-      var slideshow = remark.create();
+      var slideshow = remark.create({
+        ratio: '16:9',
+        countIncrementalSlides: false
+      });
     </script>
   </body>
 </html>

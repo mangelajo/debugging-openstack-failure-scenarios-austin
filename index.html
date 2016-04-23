@@ -221,14 +221,15 @@ $ pip install git+https://github.com/mangelajo/os-log-merger
 --
 
 - Direct download:
-```bash
+
+.left[```bash
 $ curl https://raw.githubusercontent.com/mangelajo/os-log-merger/master/oslogmerger/oslogmerger.py > \
   oslogmerger.py
-```
+```]
 
 ---
 
-# Use case
+# Use case (I) - Merging local files
 
 .left-column[```bash
 └── customer
@@ -278,6 +279,26 @@ Apr 27 10:23:33 [1/messages] node1 systemd: Create...
 2016-04-27 10:26:34.710 [1/N-API] 2802 DEBUG keyst...
 2016-04-27 10:27:34.680 [2/N-CPU] 16049 WARNING no...
 ```]
+
+---
+
+# Use case (II) - Merging gate files
+
+- Remote URLs are cached locally
+- Define aliases (COMPUTE2, OVS2, QDHCP...)
+
+.left[ ```bash
+ $ oslogmerger \
+   -b http://logs.openstack.org/.../logs/ \
+   -p .txt.gz \
+   subnode-2/screen-n-cpu:CMP2 \
+   subnode-2/screen-q-agt:OVS2 \
+   screen-q-dhcp:QDHCP \
+   screen-n-cpu:CMP1 \
+   screen-q-agt:OVS1 \
+   screen-n-api:NOVAAPI \
+   screen-q-svc:NEUTRON
+ ```]
 
 ---
 # Live demo

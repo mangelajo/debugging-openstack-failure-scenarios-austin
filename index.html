@@ -39,14 +39,6 @@ Gorka Eguileor - Senior Software Engineer (geguileo@redhat.com)
 
 April 27th 2016]
 
-???
-
-Introduce yourself,
-
-I work on OpenStack Neutron on behalf of Red Hat,
-I help fixing bugs, developing new features, and
-sometimes I give a hand with packaging.
-
 ---
 
 # distributed system = complex interactions
@@ -59,22 +51,26 @@ sometimes I give a hand with packaging.
 
 ---
 
+name: request_instance
+
 # Requesting an instance
 
-- Nova &#8594; (nova-scheduler, glance, cinder,
-  neutron, nova-conductor)
-- nova-conductor &#8594; nova-compute
-- Neutron &#8594; (ovs-agent, l3-agent, dhcp-agent)
-- (l3-agent, dhcp-agent, ovs-agent)  &#8594; Neutron
-- Neutron &#8594; Nova
-- Nova &#8594; nova-conductor &#8594; nova-compute
-- Instance &#8594; ns-metadata-proxy &#8594; metadata-agent &#8594; Nova
+.center[![](assets/vm_request.png)]
 
-Your Instance Is Ready (yes! &#9996;, or no &#9785;...)
+???
+
+-- Nova &#8594; (nova-scheduler, glance, cinder,
+-  neutron, nova-conductor)
+-- nova-conductor &#8594; nova-compute
+-- Neutron &#8594; (ovs-agent, l3-agent, dhcp-agent)
+-- (l3-agent, dhcp-agent, ovs-agent)  &#8594; Neutron
+-- Neutron &#8594; Nova
+-- Nova &#8594; nova-conductor &#8594; nova-compute
+-- Instance &#8594; ns-metadata-proxy &#8594; metadata-agent &#8594; Nova
 
 ---
 
-# Clustered component (I) · Request
+# Clustered component · Request
 
 .big[![][clustered_request_1]]
 
@@ -202,7 +198,6 @@ OpenStack services use *oslo_log* library
 # Installation
 
 - With pip for pypi:
-
  ```bash
 $ virtualenv .venv
 $ source .ven/bin/activate
@@ -221,39 +216,38 @@ $ pip install git+https://github.com/mangelajo/os-log-merger
 --
 
 - Direct download:
-```bash
-$ curl https://raw.githubusercontent.com/mangelajo/os-log-merger/master/oslogmerger/oslogmerger.py > \
-  oslogmerger.py
-```
+.left.small[```bash
+$ curl https://raw.githubusercontent.com/mangelajo/os-log-merger/master/oslogmerger/
+oslogmerger.py > oslogmerger.py
+```]
 
 ---
 
-# Use case
+# Use case - Merging local files
 
 .left-column[```bash
-└── customer
-    ├── node1
-    │   └── var
-    │       └── log
-    │           ├── messages
-    │           ├── dmesg
-    │           ├── cinder
-    │           │   ├── api.log
-    │           │   ├── scheduler.log
-    │           │   └── volume.log
-    │           ├── nova
-    │           │   ├── api.log
-    │           │   ├── scheduler.log
-    │           │   └── compute.log
-    │           └── neutron
-    │               ├── api.log
-    │               ├── registry.log
-    │               └── l3-agent.log
-    ├── node2
-    │   └── ...
-    │
-    └── node3
-        └── ...
+└─ customer
+   ├─ node1
+   │  └─ var
+   │     └─ log
+   │        ├─ messages
+   │        ├─ dmesg
+   │        ├─ cinder
+   │        │  ├─ api.log
+   │        │  ├─ scheduler.log
+   │        │  └─ volume.log
+   │        ├─ nova
+   │        │  ├─ api.log
+   │        │  ├─ scheduler.log
+   │        │  └─ compute.log
+   │        └─ neutron
+   │           ├─ api.log
+   │           ├─ registry.log
+   │           └─ l3-agent.log
+   ├─ node2
+   │  └─ ...
+   └─ node3
+      └─ ...
 ```]
 
 --
@@ -268,16 +262,36 @@ $ oslogmerger \
 --
 
 .right-column[```bash
-[421482.914824] [2/dmesg] e1000e: enp0s25 NIC Link...
-Apr 27 10:23:33 [1/messages] node1 systemd: Create...
-2016-04-27 10:23:34.680 [1/C-API] 5272 INFO cinder...
-2016-04-27 10:23:34.683 [3/Q-AGT] 17781 INFO neutr...
-2016-04-27 10:24:34.690 [1/C-SCH] 2030 DEBUG neutr...
-2016-04-27 10:25:34.700 [1/C-VOL] 16075 INFO cinde...
-2016-04-27 10:23:34.707 [2/Q-L3] 18065 DEBUG oslo_...
-2016-04-27 10:26:34.710 [1/N-API] 2802 DEBUG keyst...
-2016-04-27 10:27:34.680 [2/N-CPU] 16049 WARNING no...
+[421482.914824] [2/dmesg] e1000e: enp0s25 NIC Lin...
+Apr 27 10:23:33 [1/messages] node1 systemd: Creat...
+2016-04-27 10:23:34.680 [1/C-API] 5272 INFO cinde...
+2016-04-27 10:23:34.683 [3/Q-AGT] 17781 INFO neut...
+2016-04-27 10:24:34.690 [1/C-SCH] 2030 DEBUG neut...
+2016-04-27 10:25:34.700 [1/C-VOL] 16075 INFO cind...
+2016-04-27 10:23:34.707 [2/Q-L3] 18065 DEBUG oslo...
+2016-04-27 10:26:34.710 [1/N-API] 2802 DEBUG keys...
+2016-04-27 10:27:34.680 [2/N-CPU] 16049 WARNING n...
 ```]
+
+---
+
+# Use case (II) - Merging gate files
+
+- Remote URLs are cached locally
+- Define aliases (COMPUTE2, OVS2, QDHCP...)
+
+.left[ ```bash
+ $ oslogmerger \
+   -b http://logs.openstack.org/.../logs/ \
+   -p .txt.gz \
+   subnode-2/screen-n-cpu:CMP2 \
+   subnode-2/screen-q-agt:OVS2 \
+   screen-q-dhcp:QDHCP \
+   screen-n-cpu:CMP1 \
+   screen-q-agt:OVS1 \
+   screen-n-api:NOVAAPI \
+   screen-q-svc:NEUTRON
+ ```]
 
 ---
 # Live demo
@@ -321,7 +335,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-# Using Ansible to set the hosts (I)
+# Using Ansible to set the hosts
 
  ```yaml
  ---
@@ -448,7 +462,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-# Ansible: setting up probes (I)
+# Ansible: setting up probes
 
  ```yaml
  - name: Start pingers and arp loggers
@@ -494,7 +508,7 @@ If we add Ansible to the equation, things become:
 
 ---
 
-# Wrap them up! (I)
+# Wrap them up!
 
 #### ARP dumper
 ```bash

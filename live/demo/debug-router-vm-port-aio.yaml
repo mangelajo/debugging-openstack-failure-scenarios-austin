@@ -34,9 +34,7 @@
                     sleep 1
               done
               nova list
-              sleep 15
-
-      async: 180
+              sleep 10
 
 - name: Configure neutron controllers
   hosts: controller
@@ -126,17 +124,19 @@
       with_items:
         - "{{ networks }}"
 
-    - name: wait for vms to be up
+    - name: wait for vms to be up and do icmp via user-data script
       shell: |
         source ~/keystonerc_admin
         while nova list | grep BUILD;
         do
             sleep 1
         done
-        sleep 40
-      async: 180
 
-    - pause: prompt="Wait for instances to go up"
+        while grep -q "ICMP echo" /var/log/neutron/netprobe.log; [[ $? != 0 ]]
+        do
+            sleep 1
+        done
+        sleep 5
 
 - name: Fetch logs from hosts
   hosts: all
@@ -144,26 +144,22 @@
     - name: create local log dir
       local_action: command mkdir -p logs/{{ ansible_hostname }}/var/log/{{ item }}
       with_items:
-        - nova
-        - neutron
+          - nova
+          - neutron
 
     - name: Fetch logs
-      synchronize: mode=pull src=/var/log/{{ item }}/ dest=logs/{{ ansible_hostname }}/var/log/{{ item }}/ delete=yes
+      synchronize: mode=pull src=/var/log/{{ item }} dest=logs/{{ ansible_hostname }}/var/log/{{ item }} delete=yes
       with_items:
-        - nova
-        - neutron
+          - nova
+          - neutron
 
 - name: Final merge
   hosts: controller
   tasks:
     - name: merge logs
       local_action: shell
-          os-log-merger logs/aio-centos7-liberty/var/log/nova/nova-api.log:NOVAAPI \
-                      logs/aio-centos7-liberty/var/log/nova/nova-compute.log:COMPUTE1 \
-                      logs/aio-centos7-liberty/var/log/neutron/server.log:NEUTRONSRV \
-                      logs/aio-centos7-liberty/var/log/neutron/openvswitch-agent.log:OVS1 \
-                      logs/aio-centos7-liberty/var/log/neutron/netprobe.log:NET1 \
-                      logs/aio-centos7-liberty/var/log/neutron/l3-agent.log:L3_1 \
-                      logs/aio-centos7-liberty/var/log/neutron/dhcp-agent.log:DHCP1 \
-                      logs/aio-centos7-liberty/var/log/neutron/metadata-agent.log:META1 \
-                     >logs/mergedlogs.log
+        os-log-merger  -a3  -b logs/aio-centos7-liberty/var/log/ \
+                               nova/{nova-api,nova-compute}.log \
+                   neutron/{l3-agent,openvswitch-agent,dhcp-agent,metadata-agent,netprobe}.log \
+                   > logs/mergedlogs.log
+

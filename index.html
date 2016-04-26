@@ -39,14 +39,6 @@ Gorka Eguileor - Senior Software Engineer (geguileo@redhat.com)
 
 April 27th 2016]
 
-???
-
-Introduce yourself,
-
-I work on OpenStack Neutron on behalf of Red Hat,
-I help fixing bugs, developing new features, and
-sometimes I give a hand with packaging.
-
 ---
 
 # distributed system = complex interactions
@@ -59,18 +51,22 @@ sometimes I give a hand with packaging.
 
 ---
 
+name: request_instance
+
 # Requesting an instance
 
-- Nova &#8594; (nova-scheduler, glance, cinder,
-  neutron, nova-conductor)
-- nova-conductor &#8594; nova-compute
-- Neutron &#8594; (ovs-agent, l3-agent, dhcp-agent)
-- (l3-agent, dhcp-agent, ovs-agent)  &#8594; Neutron
-- Neutron &#8594; Nova
-- Nova &#8594; nova-conductor &#8594; nova-compute
-- Instance &#8594; ns-metadata-proxy &#8594; metadata-agent &#8594; Nova
+.center[![](assets/vm_request.png)]
 
-Your Instance Is Ready (yes! &#9996;, or no &#9785;...)
+???
+
+-- Nova &#8594; (nova-scheduler, glance, cinder,
+-  neutron, nova-conductor)
+-- nova-conductor &#8594; nova-compute
+-- Neutron &#8594; (ovs-agent, l3-agent, dhcp-agent)
+-- (l3-agent, dhcp-agent, ovs-agent)  &#8594; Neutron
+-- Neutron &#8594; Nova
+-- Nova &#8594; nova-conductor &#8594; nova-compute
+-- Instance &#8594; ns-metadata-proxy &#8594; metadata-agent &#8594; Nova
 
 ---
 

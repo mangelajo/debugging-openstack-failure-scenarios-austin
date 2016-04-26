@@ -246,8 +246,6 @@ oslogmerger.py > oslogmerger.py
    │           └─ l3-agent.log
    ├─ node2
    │  └─ ...
-   └─ node3
-      └─ ...
 ```]
 
 --
@@ -297,14 +295,16 @@ Apr 27 10:23:33 [1/messages] node1 systemd: Creat...
 # Live demo
 - Live demo goes here
   - /me crosses fingers :)
-???
-
-os-log-merger http://logs.openstack.org/40/273140/2/check/gate-tempest-dsvm-neutron-multinode-full/79a4d8f/logs/subnode-2/screen-n-cpu.txt.gz:COMPUTE2
- http://logs.openstack.org/40/273140/2/check/gate-tempest-dsvm-neutron-multinode-full/79a4d8f/logs/subnode-2/screen-q-agt.txt.gz:OVS2
- http://logs.openstack.org/40/273140/2/check/gate-tempest-dsvm-neutron-multinode-full/79a4d8f/logs/screen-q-dhcp.txt.gz:QDHCP
- http://logs.openstack.org/40/273140/2/check/gate-tempest-dsvm-neutron-multinode-full/79a4d8f/logs/screen-q-agt.txt.gz:OVS1
- http://logs.openstack.org/40/273140/2/check/gate-tempest-dsvm-neutron-multinode-full/79a4d8f/logs/screen-n-api.txt.gz:NOVAAPI
- http://logs.openstack.org/40/273140/2/check/gate-tempest-dsvm-neutron-multinode-full/79a4d8f/logs/screen-q-svc.txt.gz:NEUTRON
+```bash
+os-log-merger -b http://logs.openstack.org/33/300233/7/check/gate-tempest-dsvm-neutron-multinode-full/957d3e6/logs/ \
+              -p .txt.gz \
+                subnode-2/screen-n-cpu:COMPUTE2 \
+                subnode-2/screen-q-agt:OVS2 \
+                screen-q-dhcp:QDHCP \
+                screen-q-agt:OVS1 \
+                screen-n-api:NOVAAPI \
+                screen-q-svc:NEUTRON
+```
 
 look for: _get_dhcp_agents_hosting_network
 

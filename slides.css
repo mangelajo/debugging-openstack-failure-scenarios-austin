@@ -31,7 +31,7 @@ code {
 	-web-border-radius: 5px;
 	background: #c7c8c2;
 	border-radius: 5px;
-	font-size: 16px !important;
+	font-size: 20px !important;
 	padding: 2px;
     background-color: transparent !important;
 }
@@ -101,7 +101,7 @@ code {
 /* Two-column layout */
 .left-column {
 	color: #777;
-	width: 50%;
+	width: 40%;
 	height: 92%;
 	float: left;
 }
@@ -109,7 +109,7 @@ code {
 	color: #000;
 }
 .right-column {
-	width: 50%;
+	width: 60%;
 	float: right;
 }
 

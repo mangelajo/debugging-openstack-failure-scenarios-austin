@@ -48,13 +48,17 @@
 
     - name: set neutron & nova for debug, clear logs
       shell: |
-        openstack-config --set /etc/neutron/neutron.conf DEFAULT l3_ha True
+        openstack-config --set /etc/neutron/neutron.conf DEFAULT l3_ha False
         openstack-config --set /etc/neutron/neutron.conf DEFAULT min_l3_agents_per_router 2
         openstack-config --set /etc/neutron/neutron.conf DEFAULT debug True
-        rm -f /var/log/neutron/server.log
-        rm -f /var/log/nova/nova-api.log
-    - service: name=neutron-server state=restarted
-    - service: name=openstack-nova-api state=restarted
+        now=$(date +"%m_%d_%Y_%H_%MM_%ss")
+        mv /var/log/neutron/server.log /var/log/neutron/server_$now.log
+        mv /var/log/nova/nova-api.log /var/log/nova/nova-api_$now.log
+
+    - name: restart neutron server
+      service: name=neutron-server state=restarted
+    - name: restart nova-api
+      service: name=openstack-nova-api state=restarted
 
 
 - name: Configure neutron networkers
@@ -63,20 +67,27 @@
     - name: set neutron compute / network nodes agent for debug, clear logs
       shell: |
         openstack-config --set /etc/neutron/neutron.conf DEFAULT debug True
-        rm -f /var/log/neutron/l3-agent.log
-        rm -f /var/log/neutron/metadata-agent.log
-        rm -f /var/log/neutron/dhcp-agent.log
-        rm -f /var/log/neutron/openvswitch-agent.log
-        rm -f /var/log/nova/nova-compute.log
+        now=$(date +"%m_%d_%Y_%H_%MM_%ss")
 
-    - service: name=neutron-l3-agent state=restarted
-    - service: name=neutron-metadata-agent state=restarted
-    - service: name=neutron-dhcp-agent state=restarted
-    - service: name=neutron-openvswitch-agent state=restarted
-    - service: name=openstack-nova-compute state=restarted
+        for file in neutron/openvswitch-agent neutron/l3-agent \
+            neutron/metadata-agent neutron/dhcp-agent nova/nova-compute; do
+            mv /var/log/$file.log /var/log/neutron/$file_$now.log
+        done
 
 
-- name: Start ARP logger
+    - name: restart l3-agent
+      service: name=neutron-l3-agent state=restarted
+    - name: restart metadata agent
+      service: name=neutron-metadata-agent state=restarted
+    - name: restart dhcp agent
+      service: name=neutron-dhcp-agent state=restarted
+    - name: restart ovs agent
+      service: name=neutron-openvswitch-agent state=restarted
+    - name: restart nova compute
+      service: name=openstack-nova-compute state=restarted
+
+
+- name: Start netprobe
   hosts: all
   tasks:
     - name: ensure tcpdump
@@ -84,7 +95,8 @@
 
     - name: Kill old probes
       shell: |
-        killall netprobe.py
+        for pid in `ps ax | grep netprobe | cut -d\  -f1`; do kill $pid; done
+        killall tcpdump
         exit 0
 
     - name: Copy scripts
@@ -94,8 +106,8 @@
 
     - name: Start netprobe
       shell: |
-        rm -f /var/log/neutron/arpdumper.log
-        nohup /tmp/netprobe.py > /var/log/neutron/netprobe.log &
+        rm -f /var/log/neutron/netprobe.log
+        nohup /tmp/netprobe.py &
 
 - name: The actual workload
   hosts: controller
@@ -121,8 +133,10 @@
         do
             sleep 1
         done
-        sleep 20
+        sleep 40
       async: 180
+
+    - pause: prompt="Wait for instances to go up"
 
 - name: Fetch logs from hosts
   hosts: all
@@ -144,26 +158,12 @@
   tasks:
     - name: merge logs
       local_action: shell
-        oslogmerger logs/controller1/var/log/nova/nova-api.log:NOVAAPI \
-                    logs/controller1/var/log/nova/nova-compute.log:COMPUTE1 \
-                    logs/controller1/var/log/neutron/server.log:NEUTRONSRV \
-                    logs/controller1/var/log/neutron/openvswitch-agent.log:OVS1 \
-                    logs/controller1/var/log/neutron/netprobe.log:NET1 \
-                    logs/controller1/var/log/neutron/l3-agent.log:L3_1 \
-                    logs/controller1/var/log/neutron/dhcp-agent.log:DHCP1 \
-                    logs/controller1/var/log/neutron/metadata-agent.log:META1 \
-                    \
-                    logs/networker2/var/log/nova/nova-compute.log:COMPUTE2 \
-                    logs/networker2/var/log/neutron/openvswitch-agent.log:OVS2 \
-                    logs/networker2/var/log/neutron/arpdumper.log:ARP2 \
-                    logs/networker2/var/log/neutron/l3-agent.log:L3_2 \
-                    logs/networker2/var/log/neutron/dhcp-agent.log:DHCP2 \
-                    logs/networker2/var/log/neutron/metadata-agent.log:META2 \
-                    \
-                    logs/networker3/var/log/nova/nova-compute.log:COMPUTE3 \
-                    logs/networker3/var/log/neutron/openvswitch-agent.log:OVS3 \
-                    logs/networker3/var/log/neutron/arpdumper.log:ARP3 \
-                    logs/networker3/var/log/neutron/l3-agent.log:L3_3 \
-                    logs/networker3/var/log/neutron/dhcp-agent.log:DHCP3 \
-                    logs/networker3/var/log/neutron/metadata-agent.log:META3 \
+          os-log-merger logs/aio-centos7-liberty/var/log/nova/nova-api.log:NOVAAPI \
+                      logs/aio-centos7-liberty/var/log/nova/nova-compute.log:COMPUTE1 \
+                      logs/aio-centos7-liberty/var/log/neutron/server.log:NEUTRONSRV \
+                      logs/aio-centos7-liberty/var/log/neutron/openvswitch-agent.log:OVS1 \
+                      logs/aio-centos7-liberty/var/log/neutron/netprobe.log:NET1 \
+                      logs/aio-centos7-liberty/var/log/neutron/l3-agent.log:L3_1 \
+                      logs/aio-centos7-liberty/var/log/neutron/dhcp-agent.log:DHCP1 \
+                      logs/aio-centos7-liberty/var/log/neutron/metadata-agent.log:META1 \
                      >logs/mergedlogs.log

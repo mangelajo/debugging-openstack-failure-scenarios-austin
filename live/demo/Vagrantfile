@@ -1,0 +1,62 @@
+require 'vagrant-openstack-provider'
+
+VM_MEMORY=11000
+VM_CPUS=4
+HOSTNAME='aio-centos7-liberty'
+
+Vagrant.configure('2') do |config|
+
+  config.vm.hostname  = HOSTNAME
+  config.ssh.forward_agent = true
+
+  config.vm.provision :shell, :privileged=>true, :inline=> <<-EOF
+    yum update -y
+    yum -y install centos-release-openstack-liberty
+    yum -y install openstack-packstack
+    time packstack --allinone
+  EOF
+
+  config.vm.provision :shell, :privileged=>false,
+                      :inline=> <<-EOF
+        # personalize git, etc, anything you use for development
+        [ -f /vagrant/personal_settings.sh ] && /vagrant/personal_settings.sh
+  EOF
+
+  #############################################################################
+  # specific provider sections                                                #
+  #############################################################################
+
+  config.vm.provider :virtualbox do |v, override|
+    override.vm.box = 'chef/centos-7.0'
+    v.memory = VM_MEMORY
+    v.cpus = VM_CPUS
+  end
+
+  config.vm.provider :parallels do |v, override|
+    override.vm.box = "parallels/centos-7.1"
+    v.memory = VM_MEMORY
+    v.cpus = VM_CPUS
+    override.vm.network "public_network", bridge: "en6" # bridge to usb ethernet
+                                                        # adapter
+    v.customize ["set", :id, "--nested-virt", "on"]
+  end
+
+  config.vm.provider :openstack do |os, override|
+    override.vm.box       = 'stack'
+    os.server_name        = HOSTNAME
+    os.openstack_auth_url = "#{ENV['OS_AUTH_URL']}/tokens"
+    os.username           = "#{ENV['OS_USERNAME']}"
+    os.password           = "#{ENV['OS_PASSWORD']}"
+    os.tenant_name        = "#{ENV['OS_TENANT_NAME']}"
+    os.flavor             = ['oslab.4cpu.20hd.8gb', 'm1.large']
+    os.image              = ['centos71',
+                             'centos7.1', 'centos-71-cloud', 'centos-7.1-cloud',
+                             'centos7', 'centos-7-cloud']
+    os.floating_ip_pool   = ['external', 'external-compute01']
+    os.user_data          = <<-EOF
+#!/bin/bash
+sed -i 's/Defaults    requiretty/Defaults    !requiretty/g' /etc/sudoers
+    EOF
+    override.ssh.username = 'centos'
+  end
+end

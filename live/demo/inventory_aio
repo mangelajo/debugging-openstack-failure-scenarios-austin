@@ -1,0 +1,10 @@
+[controller]
+controller1 ansible_ssh_host=10.211.55.159 ansible_ssh_password=vagrant
+
+[networker]
+controller1 ansible_ssh_host=10.211.55.159 ansible_ssh_password=vagrant
+
+[controller:vars]
+networks=['net-a', 'net-b']
+vms=['vm-a']
+

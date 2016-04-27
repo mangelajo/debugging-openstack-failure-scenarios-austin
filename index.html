@@ -218,7 +218,7 @@ $ pip install git+https://github.com/mangelajo/os-log-merger
 - Direct download:
 .left.small[```bash
 $ curl https://raw.githubusercontent.com/mangelajo/os-log-merger/master/oslogmerger/
-oslogmerger.py > oslogmerger.py
+oslogmerger.py > os-log-merger.py
 ```]
 
 ---
@@ -252,10 +252,10 @@ oslogmerger.py > oslogmerger.py
 
 .right-column[```bash
 $ os-log-merger \
-  -a3 \
-  -ml customer/node?/var/log/messages \
-  -tl customer/node?/var/log/dmesg \
-  customer/node?/var/log/{cinder,nova,neutron}/*.log
+          -a3 \
+          -ml=customer/node?/var/log/messages \
+          -tl=customer/node?/var/log/dmesg \
+          customer/node?/var/log/{cinder,nova,neutron}/*.log
 ```]
 --
 
@@ -279,35 +279,33 @@ Apr 27 10:23:33 [1/messages] node1 systemd: Creat...
 - Define aliases (COMPUTE2, OVS2, QDHCP...)
 
 .left[ ```bash
- $ oslogmerger \
-   -b http://logs.openstack.org/.../logs/ \
-   -p .txt.gz \
-   subnode-2/screen-n-cpu:CMP2 \
-   subnode-2/screen-q-agt:OVS2 \
-   screen-q-dhcp:QDHCP \
-   screen-n-cpu:CMP1 \
-   screen-q-agt:OVS1 \
-   screen-n-api:NOVAAPI \
-   screen-q-svc:NEUTRON
+ $ os-log-merger -b http://logs.openstack.org/.../logs/ \
+                 -p .txt.gz \
+                 subnode-2/screen-n-cpu:CMP2 \
+                 subnode-2/screen-q-agt:OVS2 \
+                 screen-q-dhcp:QDHCP \
+                 screen-n-cpu:CMP1 \
+                 screen-q-agt:OVS1 \
+                 screen-n-api:NOVAAPI \
+                 screen-q-svc:NEUTRON
  ```]
 
 ---
 # Live demo
 - Live demo goes here
   - /me crosses fingers :)
+
 ```bash
-os-log-merger -b http://logs.openstack.org/33/300233/7/check/gate-tempest-dsvm-neutron-multinode-full/957d3e6/logs/ \
+$ os-log-merger -b http://logs.openstack.org/33/300233/7/check/gate-tempest-dsvm-neutron-multinode-full/957d3e6/logs/ \
               -p .txt.gz \
                 subnode-2/screen-n-cpu:COMPUTE2 \
                 subnode-2/screen-q-agt:OVS2 \
                 screen-q-dhcp:QDHCP \
                 screen-q-agt:OVS1 \
                 screen-n-api:NOVAAPI \
-                screen-q-svc:NEUTRON
+                screen-q-svc:NEUTRON | less -S
+
 ```
-
-look for: _get_dhcp_agents_hosting_network
-
 
 ---
 
@@ -347,22 +345,32 @@ If we add Ansible to the equation, things become:
        with_items:
          - /etc/neutron/neutron.conf
          - /etc/nova/nova.conf
+```
+---
 
- - name: Restart controller (with networker) services.
+# Ansible: rotate logs and restart the services once debug is set
+```yaml
+ - name: Restart controllers (with networker) services.
    hosts: controllers
    tasks:
-     - name: Clear logs.
+     - name: Rotate logs
        command: >
-         # rotating is better than removing, of course :)
-         rm -f /var/log/nova/nova-api.log /var/log/neutron/server.log \
-             /var/log/neutron/l3-agent.log
+         now=$(date +"%m_%d_%Y_%H_%M_%s")
+         mv /var/log/{{ item }} /var/log/{{ item }}.log_$now
+       with_items:
+         - neutron/server.log
+         - neutron/l3-agent.log
+         - neutron/dhcp-agent.log
+         - neutron/openvswitch-agent.log
+         - nova/nova-api.log
+
      - name: Restart controller services
        service: name={{ item }} state=restarted
        with_items:
          - neutron-server
-         - neutron-l3-agent
-         - openstack-nova-api
- ```
+         - neutron-openvswitch-agent
+         ...
+```
 
 ---
 
@@ -374,9 +382,13 @@ If we add Ansible to the equation, things become:
    tasks:
      - name: Clear logs.
        command: >
-          rm -f /var/log/nova/nova-compute.log \
-                /var/log/neutron/openvswitch-agent.log
-     - name: Restart neutron openvswitch agent and nova compute
+        now=$(date +"%m_%d_%Y_%H_%MM_%ss")
+        mv /var/log/{{ item }}.log /var/log/{{ item }}.log_$now
+       with_items:
+        - nova/compute
+        - neutron/openvswitch-agent
+
+    - name: Restart neutron openvswitch agent and nova compute
        service: name={{ item }} state=restarted
        with_items:
          - neutron-openvswitch-agent
@@ -437,89 +449,75 @@ If we add Ansible to the equation, things become:
   tasks:
     - name: merge logs
       local_action: shell   # < it happens on the machine running ansible
-        os-log-merger logs/h1/var/log/neutron/server.log:NEUTRONSRV \
-                    logs/h1/var/log/neutron/openvswitch-agent.log:OVSH1 \
-                    logs/h1/var/log/neutron/pinger.log:PINGH1 \
-                    logs/h1/var/log/neutron/arpdumper.log:ARPH1 \
-                    logs/h1/var/log/neutron/tapdumper.log:TAPH1 \
-                    logs/h1/var/log/nova/nova-api.log:NOVAAPI \
-                    logs/h1/var/log/nova/nova-compute.log:COMPUTEH1 \
-                    logs/h1/var/log/neutron/l3-agent.log:L3AGENT \
-                    logs/h2/var/log/neutron/openvswitch-agent.log:OVSH2 \
-                    logs/h2/var/log/neutron/pinger.log:PINGH2 \
-                    logs/h2/var/log/neutron/arpdumper.log:ARPH2 \
-                    logs/h2/var/log/neutron/tapdumper.log:TAPH2 \
-                    logs/h2/var/log/nova/nova-compute.log:COMPUTEH2 \
-                        >logs/mergedlogs.log
+        os-log-merger  -a3  -b logs/ \
+                   {h1,h2,h3}/var/log/nova/{nova-api,nova-compute}.log \
+                   {h1,h2,h3}/var/log/neutron/{l3-agent,openvswitch-agent,dhcp-agent,metadata-agent,netprobe}.log \
+                   > logs/mergedlogs.log
+
 ```
 ---
 
 # Introducing probes in the system
-- pingers
-- tcpdumps
-- flow dumping
-- but, how?
+- netprobe
+- pingers: ping floating ips
+- flow dumping: dumping flows on ovs
 
 ---
 
-# Ansible: setting up probes
+# netprobe
+- a companion meta-tcpdump
+- watches for new namespaces & network interfaces
+- output in openstack log format
 
- ```yaml
- - name: Start pingers and arp loggers
-   hosts: all
-   tasks:
-     - name: Kill old probes.
-       shell: |
-         killall pinger.sh arpdumper.sh tapdumper.sh tcpdump ping
-         exit 0
+```bash
+$ netprobe -h
+usage: netprobe [-h] [-v] [--netns-re NETNS_REGEX] [--netdev-re NETDEV_REGEX]
+                [--tcpdump-filter TCPDUMP_FILTER]
+                [--check-interval CHECK_INTERVAL] [--output-file OUTPUT_FILE]
 
-     - name: Copy scripts.
-       copy: src=scripts/{{ item }} dest=/tmp/{{ item }} mode=755
-       with_items:
-         - pinger.sh
-         - arpdumper.sh
-         - tapdumper.sh
+optional arguments:
+  -h, --help            show this help message and exit
+  -v, --version         show program's version number and exit
+  --netns-re NETNS_REGEX, -n NETNS_REGEX
+  --netdev-re NETDEV_REGEX, -d NETDEV_REGEX
+  --tcpdump-filter TCPDUMP_FILTER, -t TCPDUMP_FILTER
+  --check-interval CHECK_INTERVAL, -i CHECK_INTERVAL
+                        The interval between interface checks
+  --output-file OUTPUT_FILE, -o OUTPUT_FILE
+```
 
-   ( continues on next slide )
+---
+# netprobe (II)
+https://github.com/mangelajo/os-log-merger/blob/master/oslogmerger/probes/netprobe.py
+```python
+
+DEFAULT_CHECK_INTERVAL = 1
+DEFAULT_INTERFACE_RE = "tap.*|qg-\.*|qr-\.*"
+DEFAULT_TCPDUMP_FILTER = '(arp or rarp) or (udp and (port 67 or port 68))' + \
+                         ' or icmp or icmp6'
+DEFAULT_OUTPUT_FILE = '/var/log/neutron/netprobe.log'
+
 ```
 ---
-# Ansible: setting up probes (II)
-```yaml
-  (continues on previous slide)
+# netprobe (III)
+```
+2016-04-26 15:07:00.602 Watching interface tap3bc02182-43 (@ns qdhcp-4e18ca2b-0c2d-4af ...
+2016-04-26 15:07:00.604 tap3bc02182-43 started dumping with filter (arp or rarp) or (u ...
 
-     - name: Start new pingers in openstack log format.
-        shell: |
-          rm -f /var/log/neutron/pinger.log
-          nohup /tmp/pinger.sh {{ floating_ip }} > \
-               /var/log/neutron/pinger.log &
+2016-04-26 15:07:00.813063 tap3bc02182-43 fa:16:3e:6f:4a:ad > 33:33:ff:6f:4a:ad, ether ...
 
-     - name: Start arpdumper.
-       shell: |
-         rm -f /var/log/neutron/arpdumper.log
-         nohup /tmp/arpdumper.sh > /var/log/neutron/arpdumper.log &
+2016-04-26 15:07:01.636 Watching interface qg-83dbf5b1-31 (@ns qrouter-78428db4-78fa-4 ...
+2016-04-26 15:07:01.640 qg-83dbf5b1-31 started dumping with filter (arp or rarp) or (u ...
 
-     - name: Start tapdumpers.
-       shell: |
-         rm -f /var/log/neutron/tapdumper.log
-         nohup /tmp/tapdumper.sh {{ vm_tap }} > \
-               /var/log/neutron/tapdumper.log &
-
- ```
+2016-04-26 15:07:01.811120 qg-83dbf5b1-31 fa:16:3e:d9:f3:85 > Broadcast, ethertype ARP ...
+2016-04-26 15:07:01.817351 tap3bc02182-43 fa:16:3e:6f:4a:ad > 33:33:00:00:00:02, ether ...
+```
 
 ---
 
 # Wrap them up!
 
-#### ARP dumper
-```bash
-#!/bin/sh
-ip link set dev br-int up
-tcpdump -e -n -l -i br-int arp 2>&1 | \
-    while read line; do
-        echo "$(date +%Y-%m-%d\ %H:%M:%S.%03N) tcpdump DEBUG $line";
-    done
-```
-#### Pinger
+#### Pinger to Floating IP
 ```bash
 #!/bin/sh
 ping -i 0.5 $1 | \
@@ -529,61 +527,50 @@ ping -i 0.5 $1 | \
 ```
 
 ---
-# Wrap them up! (II)
+# Ansible: setting up probes
 
-#### TAP dumper
-```bash
-#!/bin/sh
-interface=$1
+ ```yaml
+  hosts: all
+  tasks:
+    - name: ensure tcpdump
+      yum: name=tcpdump state=present
 
-skip2() {
- # tail --lines=+3 blocks the output until the input finishes....
- read line ; read line
- while read line; do
-	echo $line
- done
-}
+    - name: Kill old probes
+      shell: |
+        for pid in `ps ax | grep netprobe | cut -d\  -f1`; do kill $pid; done
+        killall tcpdump
+        exit 0
 
-tcpdump_retry() {
-    interface=$1
-    echo "Starting tcpdump retrier on interface '$interface'"
-    while true;
-    do
-        tcpdump -i $interface -e -n -l 2>&1 | skip2
-        sleep 1 # yield before retrying
-    done
-}
+    - name: Copy scripts
+      copy: src=scripts/{{ item }} dest=/tmp/{{ item }} mode=755
+      with_items:
+        - netprobe.py
 
-tcpdump_retry $interface| \
-while read line; do
-     echo "$(date +%Y-%m-%d\ %H:%M:%S.%03N) tcpdump DEBUG $line";
-done
+    - name: Start netprobe
+      shell: |
+        rm -f /var/log/neutron/netprobe.log
+        nohup /tmp/netprobe.py &
 ```
-???
-It's limited, you need to know the name of the tap in advance,
-a possible improvement here is to automatically look for new
-tap devices, and start logging them as they pop up.
+---
+# Ansible examples
 
-auto-tap-logger :)
+ - https://github.com/mangelajo/os-log-merger/tree/master/contrib/debug-live-migration
+
+
+ - https://github.com/mangelajo/debugging-openstack-failure-scenarios-austin/tree/gh-pages/live/demo
 
 ---
 
 # Another live demo with ansible
 
-- OMG, are you sure?  nope..
+- OMG, are you sure?  no..
 
-
-- filtering out useful stuff:
-```bash
-cat logs/mergedlogs.log | \
-   egrep -e '(Lifecycle|ARP|META|NOVA)'
-```
 ---
 
 # What's missing (1/2)
 - move it to stackforge/openstack
 - package
-- simplify gate log merger
+- simplify gate log merger (more auto-magic)
 - filtering options (by error levels)
 
 ---
@@ -591,10 +578,9 @@ cat logs/mergedlogs.log | \
 # What's missing (2/2)
 
 - ansible template generator
-- standard set of probes:
-  - pingers
-  - others: storage? libvirt related?
-  - a javascript version for the gate
+- standard set of probes
+- others: storage? libvirt related?
+- a javascript version for the gate
 
 ---
 
@@ -617,9 +603,6 @@ Relevant links:
 
   - http://github.com/mangelajo/os-log-merger
   - http://www.ansible.com
-  - example : [debug_live_migration][]
-
-[debug_live_migration]: https://github.com/mangelajo/os-log-merger/tree/master/contrib/debug-live-migration
 
 
 ---
@@ -637,9 +620,6 @@ class: center, middle, white, no_page_footer
 Except where otherwise noted, this work is licensed under
 
 http://creativecommons.org/licenses/by/4.0/
-
-
-
 
     </textarea>
     <script src="remark.js" type="text/javascript"></script>

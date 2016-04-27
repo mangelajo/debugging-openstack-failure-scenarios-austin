@@ -297,13 +297,14 @@ Apr 27 10:23:33 [1/messages] node1 systemd: Creat...
 
 ```bash
 $ os-log-merger -b http://logs.openstack.org/33/300233/7/check/gate-tempest-dsvm-neutron-multinode-full/957d3e6/logs/ \
-              -p .txt.gz \
-                subnode-2/screen-n-cpu:COMPUTE2 \
-                subnode-2/screen-q-agt:OVS2 \
-                screen-q-dhcp:QDHCP \
-                screen-q-agt:OVS1 \
-                screen-n-api:NOVAAPI \
-                screen-q-svc:NEUTRON | less -S
+                -p .txt.gz \
+                    subnode-2/screen-n-cpu:CMP2 \
+                    subnode-2/screen-q-agt:OVS2 \
+                    screen-q-dhcp:QDHCP \
+                    screen-n-cpu:CMP1 \
+                    screen-q-agt:OVS1 \
+                    screen-n-api:NOVAAPI \
+                    screen-q-svc:NEUTRON | less -S
 
 ```
 
@@ -451,7 +452,8 @@ If we add Ansible to the equation, things become:
       local_action: shell   # < it happens on the machine running ansible
         os-log-merger  -a3  -b logs/ \
                    {h1,h2,h3}/var/log/nova/{nova-api,nova-compute}.log \
-                   {h1,h2,h3}/var/log/neutron/{l3-agent,openvswitch-agent,dhcp-agent,metadata-agent,netprobe}.log \
+                   {h1,h2,h3}/var/log/neutron/{l3-agent,openvswitch-agent,dhcp-agent} \
+                   {h1,h2,h3}/var/log/neutron/{metadata-agent,netprobe}.log \
                    > logs/mergedlogs.log
 
 ```

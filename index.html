@@ -490,18 +490,6 @@ optional arguments:
 
 ---
 # netprobe (II)
-https://github.com/mangelajo/os-log-merger/blob/master/oslogmerger/probes/netprobe.py
-```python
-
-DEFAULT_CHECK_INTERVAL = 1
-DEFAULT_INTERFACE_RE = "tap.*|qg-\.*|qr-\.*"
-DEFAULT_TCPDUMP_FILTER = '(arp or rarp) or (udp and (port 67 or port 68))' + \
-                         ' or icmp or icmp6'
-DEFAULT_OUTPUT_FILE = '/var/log/neutron/netprobe.log'
-
-```
----
-# netprobe (III)
 ```
 2016-04-26 15:07:00.602 Watching interface tap3bc02182-43 (@ns qdhcp-4e18ca2b-0c2d-4af ...
 2016-04-26 15:07:00.604 tap3bc02182-43 started dumping with filter (arp or rarp) or (u ...
@@ -516,8 +504,23 @@ DEFAULT_OUTPUT_FILE = '/var/log/neutron/netprobe.log'
 ```
 
 ---
+# netprobe (III)
+https://github.com/mangelajo/os-log-merger/blob/master/oslogmerger/probes/netprobe.py
+```python
 
-# Wrap them up!
+DEFAULT_CHECK_INTERVAL = 1
+DEFAULT_INTERFACE_RE = "tap.*|qg-\.*|qr-\.*"
+DEFAULT_TCPDUMP_FILTER = '(arp or rarp) or (udp and (port 67 or port 68))' + \
+                         ' or icmp or icmp6'
+DEFAULT_OUTPUT_FILE = '/var/log/neutron/netprobe.log'
+
+```
+---
+
+# Wrapping up tools
+
+An example: making anything log in an openstack / os-log-merger compatible
+format.
 
 #### Pinger to Floating IP
 ```bash
@@ -566,6 +569,10 @@ ping -i 0.5 $1 | \
 # Another live demo with ansible
 
 - OMG, are you sure?  no..
+
+https://raw.githubusercontent.com/mangelajo/debugging-openstack-failure-scenarios-austin/gh-pages/live/demo/debug-router-vm-port-aio.yaml
+
+https://github.com/mangelajo/debugging-openstack-failure-scenarios-austin/blob/gh-pages/live/demo/logs/mergedlogs.log#L3736
 
 ---
 

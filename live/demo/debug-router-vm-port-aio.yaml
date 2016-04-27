@@ -49,7 +49,7 @@
         openstack-config --set /etc/neutron/neutron.conf DEFAULT l3_ha False
         openstack-config --set /etc/neutron/neutron.conf DEFAULT min_l3_agents_per_router 2
         openstack-config --set /etc/neutron/neutron.conf DEFAULT debug True
-        now=$(date +"%m_%d_%Y_%H_%MM_%ss")
+        now=$(date +"%m_%d_%Y_%H_%M_%s")
         mv /var/log/neutron/server.log /var/log/neutron/server_$now.log
         mv /var/log/nova/nova-api.log /var/log/nova/nova-api_$now.log
 
@@ -65,7 +65,7 @@
     - name: set neutron compute / network nodes agent for debug, clear logs
       shell: |
         openstack-config --set /etc/neutron/neutron.conf DEFAULT debug True
-        now=$(date +"%m_%d_%Y_%H_%MM_%ss")
+        now=$(date +"%m_%d_%Y_%H_%M_%s")
 
         for file in neutron/openvswitch-agent neutron/l3-agent \
             neutron/metadata-agent neutron/dhcp-agent nova/nova-compute; do
